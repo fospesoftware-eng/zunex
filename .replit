@@ -13,7 +13,7 @@ externalPort = 80
 
 [deployment]
 deploymentTarget = "static"
-build = ["npm run build"]
+build = ["sh", "-c", "npm run build"]
 # Replit static deployments fall back to index.html for unknown routes,
 # which keeps react-router (BrowserRouter) working on deep links.
 publicDir = "dist"
