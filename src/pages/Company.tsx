@@ -29,7 +29,7 @@ export default function CompanyPage() {
         kicker="What we make"
         title="A charging hub that earns its footprint."
       >
-        <p>Zunex Core turns a counter corner into paid fast charging. Zunex Plus adds a calibrated LCD that plays advertising while phones charge — two revenue streams from one socket.</p>
+        <p>Zunex One turns a counter corner into paid fast charging. Zunex Plus adds a calibrated LCD that plays advertising while phones charge — two revenue streams from one socket.</p>
         <p>Every hub ships venue-ready: pre-configured, payments onboarded, dashboard live. Venue staff plug it in; the platform does the rest.</p>
       </SplitImage>
 

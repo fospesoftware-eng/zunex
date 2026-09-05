@@ -5,7 +5,7 @@ import { PageHero, MiniForm, CtaBand } from '../components/PageBits';
    PARTNER PROGRAMMES — resellers, installers, distributors
    ═══════════════════════════════════════════════════════════ */
 const PROGRAMMES = [
-  { t: 'Venue reseller', d: 'Sell ZUNEX Core and Plus to cafés, salons and retail counters in your city. You own the relationship; we handle logistics, onboarding and payouts.', pts: ['Margin on every hub', 'Demo kit on loan', 'Lead sharing from inbound'] },
+  { t: 'Venue reseller', d: 'Sell ZUNEX One and Plus to cafés, salons and retail counters in your city. You own the relationship; we handle logistics, onboarding and payouts.', pts: ['Margin on every hub', 'Demo kit on loan', 'Lead sharing from inbound'] },
   { t: 'Certified installer', d: 'Install and service hubs across venues. Get certified in a day, take jobs from our installation network and grow into annual maintenance contracts.', pts: ['Per-install payouts', 'Training & certification', 'Priority spare-parts pricing'] },
   { t: 'Area distributor', d: 'Carry stock and manage a territory — demos, first-line service and sub-partner recruitment with volume pricing and protected postcodes.', pts: ['Territory pricing', 'Quarterly growth targets', 'Co-funded venue demos'] },
 ];

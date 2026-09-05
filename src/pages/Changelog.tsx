@@ -29,7 +29,7 @@ const RELEASES = [
     v: 'v2.2', date: 'May 2026', scope: 'firmware',
     title: 'Quieter, cooler, faster',
     items: [
-      '65W simultaneous dual-charge profile certified on Core',
+      '65W simultaneous dual-charge profile certified on One',
       'Idle draw drops under 0.5W with adaptive port sleep',
       'Thermal headroom improved for sustained laptop charging',
     ],

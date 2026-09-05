@@ -75,7 +75,7 @@ export default function AccessoriesPage() {
                 { label: 'City', name: 'city', required: true, placeholder: 'e.g. Mumbai' },
                 { label: 'State', name: 'state', type: 'select', required: true, opts: ['Andhra Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Delhi', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Odisha', 'Punjab', 'Rajasthan', 'Tamil Nadu', 'Telangana', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Other'] },
                 { label: 'PIN code', name: 'pin', required: true, placeholder: '6-digit PIN' },
-                { label: 'Notes — quantity, device serial, venue', name: 'notes', type: 'textarea', half: false, placeholder: 'e.g. 2 cables + 1 tap pad for Zunex Core at Hitech City store' },
+                { label: 'Notes — quantity, device serial, venue', name: 'notes', type: 'textarea', half: false, placeholder: 'e.g. 2 cables + 1 tap pad for Zunex One at Hitech City store' },
               ]}
             />
           </Reveal>

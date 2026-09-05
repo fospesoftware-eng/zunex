@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MeshBG, Reveal, Counter } from '../components/Brand';
 import LeadForm from '../components/LeadForm';
@@ -6,6 +7,12 @@ import LeadForm from '../components/LeadForm';
    OWNER — everything a ZUNEX owner needs in one place.
    ═══════════════════════════════════════════════════════════ */
 export default function OwnerPage() {
+  // Hero film plays fully once, THEN the text fades in over the looping video
+  const [filmDone, setFilmDone] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setFilmDone(true), 31000); // safety net if autoplay/ended is blocked
+    return () => clearTimeout(t);
+  }, []);
   const perks = [
     {
       title: 'Guided setup',
@@ -13,7 +20,7 @@ export default function OwnerPage() {
     },
     {
       title: 'Owner dashboard',
-      desc: 'Live charge status, session history, energy stats and firmware updates for every ZUNEX unit you own — Core, Plus and accessories together.',
+      desc: 'Live charge status, session history, energy stats and firmware updates for every ZUNEX unit you own — One, Plus and accessories together.',
     },
     {
       title: 'Care & warranty',
@@ -25,25 +32,28 @@ export default function OwnerPage() {
     <main className="pt-24">
       {/* Hero */}
       <section className="relative min-h-[80svh] flex flex-col justify-center overflow-hidden noise-bg">
-        {/* Cinematic background film — self-hosted, muted, looping */}
+        {/* Cinematic background film — plays fully once, then loops behind the copy */}
         <video
           className="absolute inset-0 w-full h-full object-cover pointer-events-none"
           src="/media/owner-bg.mp4"
           poster="/media/owner-bg-poster.jpg"
           autoPlay
           muted
-          loop
           playsInline
           preload="auto"
           aria-hidden="true"
+          onEnded={(e) => { const v = e.currentTarget; v.loop = true; v.currentTime = 0; v.play().catch(() => {}); setFilmDone(true); }}
         />
-        {/* Dark scrim — keeps the type legible over the film */}
+        {/* Dark scrim — subtle during the intro film, stronger once copy appears */}
         <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: 'linear-gradient(180deg, rgba(8,8,10,0.82) 0%, rgba(8,8,10,0.58) 45%, rgba(8,8,10,0.88) 100%)' }}
+          className="absolute inset-0 pointer-events-none transition-opacity duration-1000"
+          style={{ background: 'linear-gradient(180deg, rgba(8,8,10,0.82) 0%, rgba(8,8,10,0.58) 45%, rgba(8,8,10,0.88) 100%)', opacity: filmDone ? 1 : 0.45 }}
         />
         <MeshBG variant="steel" />
-        <div className="relative max-w-container mx-auto px-6 lg:px-8">
+        <div
+          className="relative max-w-container mx-auto px-6 lg:px-8 transition-all duration-1000"
+          style={{ opacity: filmDone ? 1 : 0, transform: filmDone ? 'translateY(0)' : 'translateY(28px)', pointerEvents: filmDone ? 'auto' : 'none' }}
+        >
           <Reveal>
             <div className="text-[11px] font-semibold text-steel-bright tracking-[0.25em] uppercase mb-6">Owner</div>
           </Reveal>

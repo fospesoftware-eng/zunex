@@ -4,13 +4,13 @@ import { MeshBG, Reveal } from '../components/Brand';
 
 /* ═══════════════════════════════════════════════════════════
    ROI — what a ZUNEX fleet earns. Live calculator with a
-   Core / Plus switch. Plus carries a media player, so owners
+   One / Plus switch. Plus carries a media player, so owners
    earn extra advertising revenue on top of charging.
    ═══════════════════════════════════════════════════════════ */
 type DeviceKey = 'core' | 'plus';
 
 const DEVICES: Record<DeviceKey, { name: string; cost: number; ads: boolean }> = {
-  core: { name: 'Zunex Core', cost: 9000, ads: false },
+  core: { name: 'Zunex One', cost: 9000, ads: false },
   plus: { name: 'Zunex Plus', cost: 19000, ads: true },
 };
 
@@ -82,7 +82,7 @@ export default function RoiPage() {
             {/* Inputs */}
             <Reveal>
               <div className="p-10 rounded-3xl border-gradient hairline bg-ink-card/40 flex flex-col gap-9">
-                {/* Device switch — Core / Plus */}
+                {/* Device switch — One / Plus */}
                 <div>
                   <div className="flex items-baseline justify-between mb-3">
                     <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-paper-dim">Device</span>

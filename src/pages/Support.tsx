@@ -5,7 +5,7 @@ import { PageHero, Faq, MiniForm, CtaBand } from '../components/PageBits';
    SUPPORT — FAQs, warranty basics, ticket desk
    ═══════════════════════════════════════════════════════════ */
 const FAQS = [
-  { q: 'How long does installation take?', a: 'A Zunex Core hub installs in about 15 minutes on a standard counter or wall. Zunex Plus with the LCD screen takes around 30 minutes. Both ship pre-configured — power, plug in the cable collar, connect to Wi-Fi and you are live.' },
+  { q: 'How long does installation take?', a: 'A Zunex One hub installs in about 15 minutes on a standard counter or wall. Zunex Plus with the LCD screen takes around 30 minutes. Both ship pre-configured — power, plug in the cable collar, connect to Wi-Fi and you are live.' },
   { q: 'What is covered by the warranty?', a: 'Every hub carries a 12-month replacement warranty covering the power board, charging controller and enclosure. Accessories such as cables carry a 6-month warranty. Damage from liquid ingress or unauthorised opening is not covered.' },
   { q: 'How do payouts work?', a: 'Pay-per-charge revenue lands in your dashboard in real time and is settled to your bank account every Monday for the previous week. You set the session price; ZUNEX takes a small platform share on each transaction.' },
   { q: 'Does the device work during a power cut?', a: 'Sessions pause safely when mains power drops and resume automatically when power returns. No data is lost — the hub caches the session and syncs when back online.' },
@@ -58,7 +58,7 @@ export default function SupportPage() {
                 { label: 'Full name', name: 'name', required: true, placeholder: 'Your name' },
                 { label: 'Phone', name: 'phone', type: 'tel', required: true, placeholder: '10-digit mobile' },
                 { label: 'Email', name: 'email', type: 'email', required: true, placeholder: 'you@company.com' },
-                { label: 'Device', name: 'device', type: 'select', required: true, opts: ['Zunex Core', 'Zunex Plus', 'Accessory'] },
+                { label: 'Device', name: 'device', type: 'select', required: true, opts: ['Zunex One', 'Zunex Plus', 'Accessory'] },
                 { label: 'Serial number (on the base plate)', name: 'serial', placeholder: 'ZX-XXXX-XXXX', half: true },
                 { label: 'Order ID (if available)', name: 'order', placeholder: 'From your invoice', half: true },
                 { label: 'City', name: 'city', required: true, placeholder: 'e.g. Delhi' },

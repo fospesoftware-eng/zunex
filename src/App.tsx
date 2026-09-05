@@ -880,7 +880,7 @@ function ProductShowcase() {
                     {/* feature rows — ONE: core (on every hub) · PLUS: exclusive additions only */}
                     <Reveal delay={0.25}>
                       <p className="mt-7 mb-1 text-[9px] font-semibold tracking-[0.22em] text-paper-dim/70 uppercase">
-                        {isPlus ? 'Exclusive to PLUS' : 'Core — on every hub'}
+                        {isPlus ? 'Exclusive to PLUS' : 'One — on every hub'}
                       </p>
                     </Reveal>
                     <div className="space-y-1">
@@ -1235,7 +1235,7 @@ const FOOTER_COLS: { title: string; links: FootLinkItem[] }[] = [
   {
     title: 'Product',
     links: [
-      { label: 'Zunex Core', href: '/#product' },
+      { label: 'Zunex One', href: '/#product' },
       { label: 'Zunex Plus', href: '/#plus-media' },
       { label: 'Accessories', href: '/accessories' },
       { label: 'Support', href: '/support' },

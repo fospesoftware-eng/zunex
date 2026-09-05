@@ -41,7 +41,7 @@ const CONFIG: Record<LeadFormVariant, { kicker: string; title: string; sub: stri
 
 const OPTIONS: Record<LeadFormVariant, { label: string; name: string; opts: string[] }[]> = {
   owner: [
-    { label: 'Device', name: 'device', opts: ['Zunex Core', 'Zunex Plus', 'Both', 'Ordering soon'] },
+    { label: 'Device', name: 'device', opts: ['Zunex One', 'Zunex Plus', 'Both', 'Ordering soon'] },
     { label: 'Where is it installed?', name: 'install', opts: ['Retail shop', 'Café or restaurant', 'Gym or salon', 'Office or coworking', 'In-car', 'Other'] },
     { label: 'How many hubs?', name: 'quantity', opts: ['1', '2–5', '6–20', '20+'] },
     { label: 'What do you need?', name: 'need', opts: ['Setup & installation', 'Dashboard & payouts', 'Warranty & service', 'Bulk order'] },
@@ -49,7 +49,7 @@ const OPTIONS: Record<LeadFormVariant, { label: string; name: string; opts: stri
   advertise: [
     { label: 'Monthly budget', name: 'budget', opts: ['Under ₹25,000', '₹25,000 – ₹1,00,000', '₹1L – ₹5L', '₹5L+'] },
     { label: 'Campaign duration', name: 'duration', opts: ['1 week', '1 month', '3 months', 'Ongoing'] },
-    { label: 'Screens of interest', name: 'screens', opts: ['PLUS LCD screens', 'Core venue network', 'Both'] },
+    { label: 'Screens of interest', name: 'screens', opts: ['PLUS LCD screens', 'One venue network', 'Both'] },
     { label: 'Category', name: 'category', opts: ['Food & beverage', 'Retail / fashion', 'Entertainment', 'Automotive', 'Services', 'Other'] },
   ],
   enterprise: [
