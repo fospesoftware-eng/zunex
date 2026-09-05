@@ -955,7 +955,7 @@ function BrandStory() {
         />
 
         {/* Device economics — 3 columns */}
-        <div className="grid md:grid-cols-3 gap-6 mb-24">
+        <div className="grid md:grid-cols-3 gap-6 mb-16">
           {[
             { symbol: '65W', title: 'Charging, metered', desc: 'Pay-per-charge or free with a tap. Every session is metered and reported to the venue dashboard.' },
             { symbol: 'AD', title: 'Screens that earn', desc: 'The built-in LCD plays ad placements while people wait. The venue takes a share of every play.' },
@@ -974,7 +974,7 @@ function BrandStory() {
         {/* Philosophy — The Opportunity */}
         <div className="relative">
           {/* Ghost word watermark */}
-          <div aria-hidden="true" className="absolute -bottom-8 left-0 pointer-events-none select-none hidden lg:block">
+          <div aria-hidden="true" className="absolute -top-14 -left-2 pointer-events-none select-none hidden lg:block">
             <div
               className="font-display font-bold leading-none tracking-[-0.03em] text-[clamp(5rem,11vw,10rem)]"
               style={{
@@ -989,62 +989,20 @@ function BrandStory() {
           </div>
 
           <div className="grid lg:grid-cols-2 gap-16 items-start relative">
-            {/* Left — narrative + dwell meter + figures */}
+            {/* Left — narrative (heading uses plain Reveal: background-clip:text breaks on RevealWords' nested spans) */}
             <div>
               <Reveal>
                 <div className="text-[11px] font-semibold text-steel-bright tracking-[0.25em] uppercase mb-6">The Opportunity</div>
               </Reveal>
-              <RevealWords
-                text="Every charge is an audience."
-                className="font-display text-[clamp(2rem,5vw,4rem)] font-bold leading-tight tracking-[-0.03em] text-gradient-lux mb-8"
-              />
-              <Reveal delay={0.3}>
+              <Reveal delay={0.1}>
+                <h2 className="font-display text-[clamp(2rem,5vw,4rem)] font-bold leading-tight tracking-[-0.03em] text-gradient-lux mb-7">
+                  Every charge is an audience.
+                </h2>
+              </Reveal>
+              <Reveal delay={0.25}>
                 <p className="text-lg text-paper-soft leading-relaxed font-light">
                   Charging takes three to fifteen minutes — the most valuable dwell time in retail. The device turns it into measurable attention and direct revenue for the venue, with nothing extra to manage.
                 </p>
-              </Reveal>
-
-              {/* Dwell window meter */}
-              <Reveal delay={0.4}>
-                <div className="mt-10 p-6 rounded-2xl border-gradient hairline relative overflow-hidden">
-                  <div className="flex items-center justify-between mb-5">
-                    <span className="text-[10px] font-semibold tracking-[0.25em] uppercase text-paper-faint">Dwell window</span>
-                    <span className="font-display text-sm font-semibold text-steel-bright">3–15 min</span>
-                  </div>
-                  <div className="relative h-[3px] rounded-full bg-paper/10 overflow-hidden">
-                    <div
-                      className="absolute inset-0"
-                      style={{ background: 'linear-gradient(90deg, rgba(107,114,128,0.2) 0%, rgba(156,163,175,0.85) 50%, rgba(107,114,128,0.2) 100%)' }}
-                    />
-                    <div
-                      className="dwell-sweep absolute inset-y-0 w-1/3"
-                      style={{ background: 'linear-gradient(90deg, transparent, rgba(238,238,240,0.95), transparent)' }}
-                    />
-                  </div>
-                  <div className="flex justify-between mt-3.5 text-[9px] font-medium tracking-[0.18em] uppercase text-paper-faint">
-                    <span>Tap to start</span>
-                    <span>Attention peak</span>
-                    <span>Session ends</span>
-                  </div>
-                </div>
-              </Reveal>
-
-              {/* Compact figures */}
-              <Reveal delay={0.5}>
-                <div className="mt-4 grid grid-cols-3 gap-px rounded-2xl overflow-hidden hairline bg-paper/5">
-                  {[
-                    { v: 15, s: ' min', l: 'Avg. dwell' },
-                    { v: 2, s: '×', l: 'Revenue streams' },
-                    { v: 0, s: '', l: 'Staff hours' },
-                  ].map((f, i) => (
-                    <div key={i} className="bg-ink-elevated px-5 py-5">
-                      <div className="font-display text-2xl font-bold text-paper">
-                        <Counter to={f.v} suffix={f.s} />
-                      </div>
-                      <div className="text-[9px] font-medium tracking-[0.2em] uppercase text-paper-faint mt-1.5">{f.l}</div>
-                    </div>
-                  ))}
-                </div>
               </Reveal>
             </div>
 
@@ -1096,6 +1054,49 @@ function BrandStory() {
               ))}
             </div>
           </div>
+
+          {/* One horizontal band — dwell window meter + figures */}
+          <Reveal delay={0.3}>
+            <div className="mt-14 grid md:grid-cols-[1.25fr_1fr] rounded-2xl border-gradient hairline overflow-hidden">
+              {/* Meter half */}
+              <div className="p-6 md:p-7">
+                <div className="flex items-center justify-between mb-5">
+                  <span className="text-[10px] font-semibold tracking-[0.25em] uppercase text-paper-faint">Dwell window</span>
+                  <span className="font-display text-sm font-semibold text-steel-bright">3–15 min</span>
+                </div>
+                <div className="relative h-[3px] rounded-full bg-paper/10 overflow-hidden">
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: 'linear-gradient(90deg, rgba(107,114,128,0.2) 0%, rgba(156,163,175,0.85) 50%, rgba(107,114,128,0.2) 100%)' }}
+                  />
+                  <div
+                    className="dwell-sweep absolute inset-y-0 w-1/3"
+                    style={{ background: 'linear-gradient(90deg, transparent, rgba(238,238,240,0.95), transparent)' }}
+                  />
+                </div>
+                <div className="flex justify-between mt-3.5 text-[9px] font-medium tracking-[0.18em] uppercase text-paper-faint">
+                  <span>Tap to start</span>
+                  <span>Attention peak</span>
+                  <span>Session ends</span>
+                </div>
+              </div>
+              {/* Figures half */}
+              <div className="grid grid-cols-3 gap-px bg-paper/5 md:border-l md:border-paper/10">
+                {[
+                  { v: 15, s: ' min', l: 'Avg. dwell' },
+                  { v: 2, s: '×', l: 'Revenue streams' },
+                  { v: 0, s: '', l: 'Staff hours' },
+                ].map((f, i) => (
+                  <div key={i} className="bg-ink-elevated px-5 py-6 flex flex-col justify-center">
+                    <div className="font-display text-2xl font-bold text-paper">
+                      <Counter to={f.v} suffix={f.s} />
+                    </div>
+                    <div className="text-[9px] font-medium tracking-[0.2em] uppercase text-paper-faint mt-1.5">{f.l}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Reveal>
         </div>
       </div>
     </section>
