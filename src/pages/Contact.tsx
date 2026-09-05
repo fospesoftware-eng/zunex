@@ -11,10 +11,10 @@ type Interest = 'General' | 'Partner Enquiry' | 'Advertising Enquiry' | 'Enterpr
 const INTERESTS: Interest[] = ['General', 'Partner Enquiry', 'Advertising Enquiry', 'Enterprise', 'Support'];
 
 const CHANNELS: { interest: Interest; title: string; blurb: string; email: string }[] = [
-  { interest: 'Partner Enquiry', title: 'Partner Enquiries', blurb: 'Distribution, resellers and installation partners.', email: 'partners@zunex.com' },
-  { interest: 'Advertising Enquiry', title: 'Advertising Enquiries', blurb: 'Campaigns and placements on the hub media player.', email: 'ads@zunex.com' },
-  { interest: 'Enterprise', title: 'Enterprise Contact', blurb: 'Multi-venue rollouts, procurement and APIs.', email: 'enterprise@zunex.com' },
-  { interest: 'Support', title: 'Owner Support', blurb: 'Fleet setup, dashboard and device care.', email: 'support@zunex.com' },
+  { interest: 'Partner Enquiry', title: 'Partner Enquiries', blurb: 'Distribution, resellers and installation partners.', email: 'partners@zunex.global' },
+  { interest: 'Advertising Enquiry', title: 'Advertising Enquiries', blurb: 'Campaigns and placements on the hub media player.', email: 'ads@zunex.global' },
+  { interest: 'Enterprise', title: 'Enterprise Contact', blurb: 'Multi-venue rollouts, procurement and APIs.', email: 'enterprise@zunex.global' },
+  { interest: 'Support', title: 'Owner Support', blurb: 'Fleet setup, dashboard and device care.', email: 'support@zunex.global' },
 ];
 
 export default function ContactPage() {
@@ -150,7 +150,7 @@ export default function ContactPage() {
                   ))}
                   <li className="flex items-baseline justify-between gap-4 border-b border-paper/10 pb-4">
                     <span className="text-[13px] text-paper-dim">General</span>
-                    <a href="mailto:hello@zunex.com" data-hover className="text-[13px] font-medium text-paper hover:text-steel transition-colors">hello@zunex.com</a>
+                    <a href="mailto:hello@zunex.global" data-hover className="text-[13px] font-medium text-paper hover:text-steel transition-colors">hello@zunex.global</a>
                   </li>
                 </ul>
               </div>
@@ -164,7 +164,7 @@ export default function ContactPage() {
                 <p className="text-[13px] leading-relaxed text-paper-dim">
                   Global Eco Power Mobility
                   And Energy Pvt. Ltd.<br />
-                  Kochi, Kerala, India
+                  Delhi, India
                 </p>
               </div>
               <Link to="/enterprise" data-hover className="text-[12px] font-semibold tracking-[0.08em] uppercase text-paper-soft hover:text-paper transition-colors w-fit">
