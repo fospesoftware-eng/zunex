@@ -1,10 +1,15 @@
 import { useRef, useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import { Logotype, Monogram, Mark, ScrollProgress, Counter, Reveal, RevealWords, CustomCursor, MeshBG } from './components/Brand';
 import { useMousePosition, useScrollProgress, useMagnetic } from './hooks/usePremium';
-
-/* ══ NAV ══ */
-// (Navbar stays as-is but let me rebuild inline for cleaner control)
+import { useChargeCycle } from './hooks/useChargeCycle';
+import FastCharge, { MARK_PATHS } from './components/FastChargeDemo';
+import OwnerPage from './pages/Owner';
+import FastChargePage from './pages/FastChargePage';
+import AdvertisePage from './pages/Advertise';
+import EnterprisePage from './pages/Enterprise';
+import RoiPage from './pages/Roi';
 
 /* ═══════════════════════════════════════════════════════════
    MAGNETIC LINK
@@ -32,6 +37,7 @@ function MagneticLink({ children, href, primary = false }: { children: React.Rea
 function Hero() {
   const mouse = useMousePosition();
   const { ref: scrollRef, progress } = useScrollProgress<HTMLDivElement>();
+  const [videoReady, setVideoReady] = useState(false);
 
   // Parallax transforms
   const textX = mouse.x * 6;
@@ -43,6 +49,25 @@ function Hero() {
 
   return (
     <section id="top" ref={scrollRef} className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden noise-bg">
+      {/* Cinematic brand film — self-hosted, muted, looping, auto-fade on load */}
+      <video
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+        src="/media/hero-bg.mp4"
+        poster="/media/hero-bg-poster.jpg"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        aria-hidden="true"
+        onCanPlay={() => setVideoReady(true)}
+        style={{ opacity: videoReady ? 1 : 0, transition: 'opacity 1.4s var(--ease-lux)' }}
+      />
+      {/* Dark scrim — keeps the massive type legible over the film */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: 'linear-gradient(180deg, rgba(8,8,10,0.8) 0%, rgba(8,8,10,0.55) 45%, rgba(8,8,10,0.88) 100%)' }}
+      />
       <MeshBG variant="steel" />
 
       {/* Faint flat mark watermark — no container, no orbits */}
@@ -61,7 +86,7 @@ function Hero() {
         <Reveal delay={0.2}>
           <div className="inline-flex items-center gap-2 mb-10">
             <span className="w-1 h-1 rounded-full bg-steel" style={{ animation: 'pulse-soft 2s ease-in-out infinite' }} />
-            <span className="text-[10px] font-medium text-paper-dim tracking-[0.25em] uppercase">Charging · Media · Beyond</span>
+            <span className="text-[10px] font-medium text-paper-dim tracking-[0.25em] uppercase">Charging · Plus · Beyond</span>
           </div>
         </Reveal>
 
@@ -83,7 +108,7 @@ function Hero() {
 
         <Reveal delay={0.65}>
           <p className="mt-10 text-base md:text-lg text-paper-soft max-w-md mx-auto font-light leading-relaxed">
-            One brand. Multiple business possibilities. Engineered for a world that moves beyond convention.
+            Engineered for a world that moves beyond convention.
           </p>
         </Reveal>
 
@@ -214,44 +239,91 @@ function Marquee() {
    ═══════════════════════════════════════════════════════════ */
 
 /** Charge state machine: idle → (tap QR) → charging → charged → idle */
-type ChargePhase = 'idle' | 'charging' | 'charged';
+/* ═══════════════════════════════════════════════════════════
+   PLUS MEDIA HERO — ZUNEX PLUS with its live screen.
+   The LCD is ALWAYS in play mode: the embedded video renders
+   from load with no text or controls. Charging is started by
+   tapping the QR code on the device body — same flow as the
+   FastCharge hub hero.
+   ═══════════════════════════════════════════════════════════ */
 
-function useChargeCycle() {
-  const [phase, setPhase] = useState<ChargePhase>('idle');
-  const [pct, setPct] = useState(0);
+/** Glass corners of the PLUS photo (plus-full-cutout.png 1700×1073), asset px:
+ *  A(95,305) B(1095,55) C(1475,375) D(345,685). The control band runs along the
+ *  near edge only — the black glass fills the rest of the top surface.
+ *  Image placement in SVG user units: x=70 y=118 w=560 h=354; viewBox 0 60 1480 450
+ *  (left edge extended to 0 so the device keeps safe padding from the viewport edge).
+ *  The 1000×620 HTML overlay is perspective-mapped onto the glass via a homography
+ *  computed in live CSS px (matrix3d values are px, not percentages). */
+const PLUS_GLASS_QUAD_PX = [[95, 305], [1095, 55], [1475, 375], [345, 685]] as const;
+const PLUS_IMG_RECT = { x: 70, y: 118, w: 560, h: 354, assetW: 1700, assetH: 1073 };
 
-  useEffect(() => {
-    if (phase !== 'charging') return;
-    const id = setInterval(() => setPct((p) => Math.min(100, p + 1)), 34);
-    return () => clearInterval(id);
-  }, [phase]);
-
-  useEffect(() => {
-    if (pct === 100 && phase === 'charging') setPhase('charged');
-  }, [pct, phase]);
-
-  useEffect(() => {
-    if (phase !== 'charged') return;
-    const t = setTimeout(() => { setPhase('idle'); setPct(0); }, 2400);
-    return () => clearTimeout(t);
-  }, [phase]);
-
-  return { phase, pct, start: () => setPhase((s) => (s === 'idle' ? 'charging' : s)) };
+function solveHomography(src: number[][], dst: number[][]): string {
+  const rows: number[][] = [];
+  const vec: number[] = [];
+  for (let i = 0; i < 4; i++) {
+    const [X, Y] = dst[i], [u, v] = src[i];
+    rows.push([-u, -v, -1, 0, 0, 0, X * u, X * v]);
+    vec.push(-X);
+    rows.push([0, 0, 0, -u, -v, -1, Y * u, Y * v]);
+    vec.push(-Y);
+  }
+  // Gaussian elimination on 8x8
+  const A = rows.map((r, i) => [...r, vec[i]]);
+  for (let c = 0; c < 8; c++) {
+    let p = c;
+    for (let r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+    [A[c], A[p]] = [A[p], A[c]];
+    for (let r = 0; r < 8; r++) {
+      if (r === c) continue;
+      const f = A[r][c] / A[c][c];
+      for (let k = c; k <= 8; k++) A[r][k] -= f * A[c][k];
+    }
+  }
+  const x = Array.from({ length: 8 }, (_, i) => A[i][8] / A[i][i]);
+  const H = [x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7], 1];
+  // CSS matrix3d is column-major: x'=a*x+e*y+m ; y'=b*x+f*y+n ; w'=d*x+h*y+p
+  const f3 = (n: number) => Number(n.toFixed(5));
+  return `matrix3d(${f3(H[0])},${f3(H[3])},0,${f3(H[6])},${f3(H[1])},${f3(H[4])},0,${f3(H[7])},0,0,1,0,${f3(H[2])},${f3(H[5])},0,${H[8]})`;
 }
 
-/* Official ZUNEX mark paths (from brand svg), viewBox 0 0 519 519 */
-const MARK_PATHS = [
-  'M198.94,208.97c-32.11.15-55.56,26.95-55.75,56.59-.2,30.94,22.31,55.77,53.93,58.28l68.58.05.04,36.14-70.14.02c-43.48-2.45-79.51-33.4-88.24-76.11-11.74-57.42,34.26-111.14,90.94-111.26l67.38-.2.11,36.06-66.85.43Z',
-  'M130.75 248.57 369.77 248.56 369.8 283.2 130.76 283.2 130.76 284.17',
-  'M411.32 265.59 342.08 172.74 287.58 172.82 360.25 266.16 287.18 359.83 340.84 359.91 411.32 265.59',
-];
+/** Measures the live scene and builds the px-based matrix3d for the screen overlay. */
+function usePlusScreenMatrix() {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [matrix, setMatrix] = useState('');
+  useEffect(() => {
+    const compute = () => {
+      const wrap = wrapRef.current, svg = svgRef.current;
+      if (!wrap || !svg) return;
+      const wr = wrap.getBoundingClientRect();
+      const sr = svg.getBoundingClientRect();
+      const ox = sr.left - wr.left, oy = sr.top - wr.top;
+      const { x, y, w, h, assetW, assetH } = PLUS_IMG_RECT;
+      const sx = w / assetW, sy = h / assetH;
+      const dst = PLUS_GLASS_QUAD_PX.map(([qx, qy]) => [
+        ox + (x + qx * sx) / 1480 * sr.width,
+        oy + (y + qy * sy - 60) / 450 * sr.height,
+      ]);
+      setMatrix(solveHomography([[0, 0], [1000, 0], [1000, 620], [0, 620]], dst));
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(wrapRef.current!);
+    window.addEventListener('resize', compute);
+    return () => { ro.disconnect(); window.removeEventListener('resize', compute); };
+  }, []);
+  return { wrapRef, svgRef, matrix };
+}
 
-function FastCharge() {
-  const { phase, pct, start } = useChargeCycle();
+function PlusMediaHero() {
+  /* 150ms/step → ~15s charging: enough for the embedded video to load and play */
+  const { phase, pct, start } = useChargeCycle(150);
+  const { wrapRef, svgRef, matrix } = usePlusScreenMatrix();
   const charging = phase === 'charging';
   const charged = phase === 'charged';
   const fillH = (pct * 1.02).toFixed(1);
-  const cablePath = 'M 546 378 C 750 378, 850 468, 975 480 C 1080 489, 1170 490, 1235 478';
+  /* Cable starts tucked inside the plug boot (x≈428) and ends hidden behind the iPhone body */
+  const cablePath = 'M 428 426.6 C 630 450, 860 468, 985 478 C 1090 488, 1175 486, 1235 462';
   const sceneRef = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
@@ -264,17 +336,16 @@ function FastCharge() {
   };
 
   return (
-    <section className="relative min-h-[92svh] flex flex-col justify-center py-16 lg:py-20 overflow-hidden noise-bg">
+    <section id="plus-media" className="relative min-h-[92svh] flex flex-col justify-center py-16 lg:py-20 overflow-hidden noise-bg">
       <MeshBG variant="steel" />
 
       {/* tiny header label */}
       <div className="relative max-w-container mx-auto px-6 lg:px-8 text-center mb-4">
         <Reveal>
-          <div className="text-[10px] font-semibold text-steel-bright tracking-[0.28em] uppercase">Fast charging — 65W USB-C PD</div>
+          <div className="text-[10px] font-semibold text-steel-bright tracking-[0.28em] uppercase">Smart media — charge · pay · play</div>
         </Reveal>
       </div>
 
-      {/* full-width 3D scene */}
       <Reveal delay={0.15}>
         <div
           ref={sceneRef}
@@ -283,7 +354,7 @@ function FastCharge() {
           onMouseMove={onTilt}
           onMouseLeave={() => setTilt({ x: 0, y: 0 })}
         >
-          {/* "Tap · Charge · Beyond" as giant two-line background text — hero-style solid fill, fading into the theme */}
+          {/* giant background text */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none overflow-hidden" aria-hidden="true">
             <span className="font-display font-bold whitespace-nowrap leading-[0.94]"
               style={{
@@ -294,7 +365,7 @@ function FastCharge() {
                 WebkitBackgroundClip: 'text',
                 backgroundClip: 'text',
               }}>
-              TAP · CHARGE
+              PLUG IN.
             </span>
             <span className="font-display font-bold whitespace-nowrap leading-[0.94]"
               style={{
@@ -305,7 +376,7 @@ function FastCharge() {
                 WebkitBackgroundClip: 'text',
                 backgroundClip: 'text',
               }}>
-              BEYOND
+              PLAY ON.
             </span>
           </div>
 
@@ -315,88 +386,95 @@ function FastCharge() {
           <span className="absolute bottom-4 left-5 text-paper/25 text-base font-thin select-none pointer-events-none">+</span>
           <span className="absolute bottom-4 right-5 text-paper/25 text-base font-thin select-none pointer-events-none">+</span>
           <div className="absolute left-3 top-1/2 -translate-y-1/2 hidden lg:block pointer-events-none select-none">
-            <span className="text-[9px] font-semibold tracking-[0.4em] uppercase text-paper/30" style={{ writingMode: 'vertical-rl' }}>Zunex One · 65W Wireless</span>
+            <span className="text-[9px] font-semibold tracking-[0.4em] uppercase text-paper/30" style={{ writingMode: 'vertical-rl' }}>Zunex Plus · Smart Media</span>
           </div>
           <div className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:block pointer-events-none select-none">
             <span className="text-[9px] font-semibold tracking-[0.4em] uppercase text-paper/30" style={{ writingMode: 'vertical-rl' }}>iPhone 17 · USB-C PD 3.0</span>
           </div>
 
           <div className="relative" style={{ transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`, transformStyle: 'preserve-3d', transition: 'transform 0.25s ease-out' }}>
-            <svg viewBox="40 60 1440 450" className="w-full h-auto" fill="none" role="img" aria-label="ZUNEX hub fast charging an iPhone 17 — tap the QR code to start">
+            <svg ref={svgRef} viewBox="0 60 1480 450" className="w-full h-auto" fill="none" role="img" aria-label="ZUNEX PLUS fast charging an iPhone 17 — tap the QR code to start">
               <defs>
-                <radialGradient id="portGlow">
+                <radialGradient id="pmPortGlow">
                   <stop offset="0%" stopColor="#C5C9D0" stopOpacity="0.9" />
                   <stop offset="100%" stopColor="#6B7280" stopOpacity="0" />
                 </radialGradient>
-                <radialGradient id="packetGlow">
+                {/* soft ring-halo around the QR hotspot — transparent over the QR itself */}
+                <radialGradient id="pmQrHalo">
+                  <stop offset="54%" stopColor="#F4F3EF" stopOpacity="0" />
+                  <stop offset="68%" stopColor="#F4F3EF" stopOpacity="0.65" />
+                  <stop offset="100%" stopColor="#9CA3AF" stopOpacity="0" />
+                </radialGradient>
+                <radialGradient id="pmPacketGlow">
                   <stop offset="0%" stopColor="#C5C9D0" stopOpacity="0.45" />
                   <stop offset="100%" stopColor="#6B7280" stopOpacity="0" />
                 </radialGradient>
-                <radialGradient id="groundGlow">
+                <radialGradient id="pmGroundGlow">
                   <stop offset="0%" stopColor="#6B7280" stopOpacity="0.22" />
                   <stop offset="100%" stopColor="#6B7280" stopOpacity="0" />
                 </radialGradient>
-                <linearGradient id="glintGrad" x1="0" y1="0" x2="1" y2="0">
+                <linearGradient id="pmGlintGrad" x1="0" y1="0" x2="1" y2="0">
                   <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0" />
                   <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.55" />
                   <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
                 </linearGradient>
-                <clipPath id="hubClip">
-                  <rect x="150" y="280" width="320" height="173" rx="14" />
+                <clipPath id="pmClip">
+                  <rect x="70" y="118" width="560" height="354" rx="16" />
                 </clipPath>
-                <linearGradient id="fillGrad" x1="0" y1="1" x2="0" y2="0">
+                <linearGradient id="pmFillGrad" x1="0" y1="1" x2="0" y2="0">
                   <stop offset="0%" stopColor="#4B5563" />
                   <stop offset="100%" stopColor="#C5C9D0" />
                 </linearGradient>
-                <linearGradient id="screenGrad" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="pmScreenGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#15151A" />
                   <stop offset="100%" stopColor="#0A0A0E" />
                 </linearGradient>
-                <linearGradient id="phoneBody" x1="0" y1="0" x2="1" y2="1">
+                <linearGradient id="pmPhoneBody" x1="0" y1="0" x2="1" y2="1">
                   <stop offset="0%" stopColor="#87878E" />
                   <stop offset="50%" stopColor="#55555C" />
                   <stop offset="100%" stopColor="#3E3E45" />
                 </linearGradient>
-                <filter id="softBlur" x="-40%" y="-40%" width="180%" height="180%">
+                <filter id="pmSoftBlur" x="-40%" y="-40%" width="180%" height="180%">
                   <feGaussianBlur stdDeviation="9" />
                 </filter>
-                <filter id="hubShadow" x="-30%" y="-30%" width="160%" height="160%">
+                <filter id="pmDevShadow" x="-30%" y="-30%" width="160%" height="160%">
                   <feDropShadow dx="0" dy="12" stdDeviation="14" floodColor="#000000" floodOpacity="0.55" />
                 </filter>
-                <filter id="reflBlur" x="-20%" y="-20%" width="140%" height="140%">
+                <filter id="pmReflBlur" x="-20%" y="-20%" width="140%" height="140%">
                   <feGaussianBlur stdDeviation="2.5" />
                 </filter>
-                <linearGradient id="floorLine" x1="0" y1="0" x2="1" y2="0">
+                <linearGradient id="pmFloorLine" x1="0" y1="0" x2="1" y2="0">
                   <stop offset="0%" stopColor="#6B7280" stopOpacity="0" />
                   <stop offset="50%" stopColor="#6B7280" stopOpacity="0.32" />
                   <stop offset="100%" stopColor="#6B7280" stopOpacity="0" />
                 </linearGradient>
-                <linearGradient id="reflGrad" x1="0" y1="1" x2="0" y2="0">
-                  <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.55" />
+                <linearGradient id="pmReflGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.5" />
                   <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
                 </linearGradient>
-                <mask id="reflFade">
-                  <rect x="150" y="453" width="320" height="90" fill="url(#reflGrad)" />
+                <mask id="pmReflFade">
+                  <rect x="70" y="496" width="560" height="30" fill="url(#pmReflGrad)" />
                 </mask>
               </defs>
 
               {/* studio floor line */}
-              <line x1="60" y1="486" x2="1380" y2="486" stroke="url(#floorLine)" strokeWidth="1" />
+              <line x1="60" y1="486" x2="1380" y2="486" stroke="url(#pmFloorLine)" strokeWidth="1" />
 
-              {/* ambient floor glow — brightens while charging */}
-              <ellipse cx="700" cy="470" rx="520" ry="34" fill="url(#groundGlow)"
+              {/* ambient floor glow */}
+              <ellipse cx="700" cy="470" rx="520" ry="34" fill="url(#pmGroundGlow)"
                 style={{ opacity: charging ? 1 : 0.35, transition: 'opacity 0.8s ease' }} />
 
-              {/* ═══ cable hub → iPhone — original cable look, connection behind the device ═══ */}
+              {/* ═══ cable PLUS → iPhone (drawn BEHIND both devices; the visible
+                  USB-C plug is drawn INSIDE the PLUS float group below, glued
+                  to the actual port hole so it never detaches) ═══ */}
               <path d={cablePath} stroke="#1C1C21" strokeWidth="6.5" strokeLinecap="round" />
               <path d={cablePath} stroke="#38383F" strokeWidth="2" strokeLinecap="round" opacity="0.55" />
 
-              {/* electrifying charge — minimal arrows */}
               {charging && (
                 <>
                   {[0, 1.2].map((begin) => (
                     <g key={begin}>
-                      <circle r="5" fill="url(#packetGlow)">
+                      <circle r="5" fill="url(#pmPacketGlow)">
                         <animateMotion dur="2.4s" begin={`${begin}s`} repeatCount="indefinite" path={cablePath} />
                       </circle>
                       <g opacity="0.8">
@@ -405,44 +483,51 @@ function FastCharge() {
                       </g>
                     </g>
                   ))}
-                  {/* 65W badge on cable */}
                   <g opacity="0.9" style={{ animation: 'fade-in-soft 0.4s ease-out both' }}>
-                    <rect x="767" y="414" width="46" height="21" rx="10.5" fill="#101014" stroke="#2E2E34" strokeWidth="1" />
-                    <text x="790" y="428" textAnchor="middle" fontFamily="Space Grotesk, sans-serif" fontWeight="700" fontSize="9.5" letterSpacing="1" fill="#AEB2BA">65W</text>
+                    <rect x="712" y="446.8" width="46" height="21" rx="10.5" fill="#101014" stroke="#2E2E34" strokeWidth="1" />
+                    <text x="735" y="460.8" textAnchor="middle" fontFamily="Space Grotesk, sans-serif" fontWeight="700" fontSize="9.5" letterSpacing="1" fill="#AEB2BA">65W</text>
                   </g>
                 </>
               )}
 
-              {/* ═══ ZUNEX ONE — original device photo with 3D depth ═══ */}
-              <g style={{ animation: 'float-soft 7s ease-in-out infinite' }}>
-               <g transform="translate(170,230) scale(1.34375) translate(-150,-280)">
-                {/* ground shadow */}
-                <ellipse cx="310" cy="458" rx="175" ry="11" fill="#000" opacity="0.5" filter="url(#softBlur)" />
-                {/* photo with depth shadow */}
+              {/* ═══ ZUNEX PLUS — full device photo, transparent cutout.
+                  Softer float (float-soft-sm) keeps the plug glued to the port hole. ═══ */}
+              <g style={{ animation: 'float-soft-sm 7s ease-in-out infinite' }}>
+                <ellipse cx="400" cy="446" rx="270" ry="12" fill="#000" opacity="0.5" filter="url(#pmSoftBlur)" />
                 <g>
-                  <image href="/products/hub-cutout.png?v=2" x="150" y="280" width="320" height="173" filter="url(#hubShadow)" />
-                  {/* glass glint sweeping across the device */}
-                  <g clipPath="url(#hubClip)">
-                    <rect x="130" y="275" width="46" height="183" fill="url(#glintGrad)"
+                  <image href="/products/plus-full-cutout.png" x="70" y="118" width="560" height="354" filter="url(#pmDevShadow)" />
+                  <g clipPath="url(#pmClip)">
+                    <rect x="40" y="110" width="72" height="370" fill="url(#pmGlintGrad)"
                       style={{ animation: 'glint-sweep 5.5s ease-in-out infinite' }} />
                   </g>
                 </g>
+                {/* floor reflection */}
+                <image href="/products/plus-full-cutout.png" x="70" y="118" width="560" height="354"
+                  transform="translate(0,972) scale(1,-1)" mask="url(#pmReflFade)" opacity="0.16" filter="url(#pmReflBlur)" />
 
-                {/* studio floor reflection — flipped, blurred, fading */}
-                <image href="/products/hub-cutout.png?v=2" x="150" y="280" width="320" height="173"
-                  transform="translate(0,906) scale(1,-1)" mask="url(#reflFade)" opacity="0.16" filter="url(#reflBlur)" />
+                {/* ═══ USB-C plug — anchored to the port hole: asset slot center
+                    (825,917.5) → SVG (341.8,420.4), slot axis (328.9,425.9)→(354.7,415.1)
+                    (−22.7°), verified with in-SVG reference markers against the live
+                    render. Inside this float group → bobs together with the device. ═══ */}
+                <g>
+                  {/* charging glow halo around the port hole */}
+                  {charging && (
+                    <circle cx="341.8" cy="420.4" r="16" fill="url(#pmPortGlow)"
+                      style={{ animation: 'port-glow 1.6s ease-in-out infinite', transformOrigin: '341.8px 420.4px' }} />
+                  )}
+                  {/* silver metal shell — starts inside the dark hole, exits along its axis */}
+                  <line x1="334" y1="422.2" x2="359" y2="415.5" stroke="#B9BDC4" strokeWidth="6.6" strokeLinecap="round" opacity="0.85" />
+                  <line x1="335.5" y1="421.8" x2="358" y2="415.9" stroke="#DCDFE3" strokeWidth="1.6" strokeLinecap="round" opacity="0.7" />
+                  {/* molded plastic body bending toward the cable run */}
+                  <line x1="359" y1="415.5" x2="384" y2="422" stroke="#1E1E23" strokeWidth="10" strokeLinecap="butt" />
+                  {/* strain-relief boot widening to the cable diameter */}
+                  <path d="M 384 416.8 L 446 418.9 L 446 437.9 L 384 427.2 Z" fill="#141418" />
+                </g>
 
-                {/* wireless ripples from the pad while charging */}
-                {charging && (
-                  <g stroke="#8E929B" fill="none" strokeWidth="1.2">
-                    {[0, 1.1].map((d) => (
-                      <circle key={d} cx="236" cy="365" r="28"
-                        style={{ animation: `hub-ripple 2.2s ease-out ${d}s infinite`, transformBox: 'fill-box', transformOrigin: 'center' }} />
-                    ))}
-                  </g>
-                )}
-
-                {/* ── QR tap target (over the photo's QR) ── */}
+                {/* ── QR tap target — invisible hit area over the photo's QR
+                    (asset 1420-1590 × 470-580 → SVG ≈ 538-594 × 273-309).
+                    Idle cue: a soft steel halo breathing around the QR — no
+                    outline, no text, no overlay block. ── */}
                 <g
                   onClick={start}
                   style={{ cursor: charging ? 'default' : 'pointer' }}
@@ -450,42 +535,28 @@ function FastCharge() {
                   aria-label="Tap the QR code to start charging"
                 >
                   {phase === 'idle' && (
-                    <>
-                      <rect x="324" y="396" width="36" height="36" rx="6" fill="none" stroke="#9CA3AF" strokeWidth="1"
-                        style={{ animation: 'qr-ping 1.6s ease-out infinite', transformBox: 'fill-box', transformOrigin: 'center' }} />
-                      <text x="342" y="468" textAnchor="middle" fontFamily="Inter, sans-serif" fontWeight="600" fontSize="10" letterSpacing="2.5" fill="#6E6E76" style={{ animation: 'pulse-soft 1.6s ease-in-out infinite' }}>
-                        TAP QR TO CHARGE
-                      </text>
-                    </>
+                    <ellipse cx="566" cy="291" rx="38" ry="28" fill="none" stroke="#F4F3EF" strokeOpacity="0.5" strokeWidth="1.2"
+                      style={{ animation: 'halo-breathe 2.8s ease-in-out infinite', transformOrigin: '566px 291px' }} />
                   )}
-                  <rect x="329" y="401" width="27" height="27" rx="4" fill="#F4F3EF" opacity={charging ? 0.16 : 0.08} />
-                  <rect x="324" y="396" width="36" height="36" rx="6" fill="transparent" />
+                  <rect x="528" y="258" width="76" height="66" rx="10" fill="transparent" />
                 </g>
-               </g>
               </g>
 
-              {/* ═══ iPhone 17 — realistic proportions (71.5 × 149.6 mm ≈ 155 × 325) ═══ */}
-              <g style={{ animation: 'float-soft 7s ease-in-out -3.5s infinite' }}>
+              {/* ═══ iPhone 17 ═══ */}
+              <g style={{ animation: 'float-soft-sm 7s ease-in-out -3.5s infinite' }}>
                <g transform="translate(1140,60) scale(1.258) translate(-1160,-88)">
-                {/* ground shadow */}
-                <ellipse cx="1237" cy="432" rx="90" ry="12" fill="#000" opacity="0.5" filter="url(#softBlur)" />
-                {/* extruded side */}
+                <ellipse cx="1237" cy="432" rx="90" ry="12" fill="#000" opacity="0.5" filter="url(#pmSoftBlur)" />
                 <rect x="1160" y="96" width="155" height="325" rx="28" fill="#1F1F24" />
-                {/* side buttons */}
                 <rect x="1156" y="118" width="4" height="24" rx="2" fill="#3C3C43" />
                 <rect x="1156" y="152" width="4" height="36" rx="2" fill="#3C3C43" />
                 <rect x="1156" y="196" width="4" height="36" rx="2" fill="#3C3C43" />
                 <rect x="1315" y="146" width="4" height="58" rx="2" fill="#3C3C43" />
-                {/* frame */}
-                <rect x="1160" y="88" width="155" height="325" rx="28" fill="url(#phoneBody)" />
+                <rect x="1160" y="88" width="155" height="325" rx="28" fill="url(#pmPhoneBody)" />
                 <rect x="1163" y="91" width="149" height="319" rx="25" fill="#050507" />
-                {/* screen — clear surface with defined border */}
-                <rect x="1168" y="96" width="139" height="309" rx="20" fill="url(#screenGrad)" stroke="#4A4A52" strokeWidth="1.25" />
+                <rect x="1168" y="96" width="139" height="309" rx="20" fill="url(#pmScreenGrad)" stroke="#4A4A52" strokeWidth="1.25" />
                 <rect x="1171" y="99" width="133" height="303" rx="17" fill="none" stroke="#2A2A31" strokeWidth="0.75" />
-                {/* dynamic island */}
                 <rect x="1214" y="108" width="47" height="14.5" rx="7.25" fill="#020203" />
 
-                {/* idle — sleeping screen */}
                 {phase === 'idle' && (
                   <g opacity="0.55">
                     <g transform="translate(1216,186) scale(0.081)" fill="#3C3C43">
@@ -494,21 +565,16 @@ function FastCharge() {
                   </g>
                 )}
 
-                {/* charging — all content inside the screen */}
                 {charging && (
                   <g style={{ animation: 'fade-in-soft 0.3s ease-out both' }}>
-                    {/* battery */}
                     <rect x="1228" y="144" width="18" height="6" rx="2.5" fill="#B9BDC4" />
                     <rect x="1204" y="150" width="66" height="110" rx="12" stroke="#B9BDC4" strokeWidth="2.5" fill="none" />
-                    <rect x="1209" y={256 - Number(fillH)} width="56" height={fillH} rx="6" fill="url(#fillGrad)" style={{ transition: 'height 0.12s linear, y 0.12s linear' }} />
-                    {/* bolt */}
+                    <rect x="1209" y={256 - Number(fillH)} width="56" height={fillH} rx="6" fill="url(#pmFillGrad)" style={{ transition: 'height 0.12s linear, y 0.12s linear' }} />
                     <g style={{ animation: 'pulse-soft 1.4s ease-in-out infinite' }}>
                       <path d="M1243 178 L1228 208 h8.5 l-4.5 24 15-28 h-8.5 l7-26 Z" fill="#F4F3EF" opacity="0.95" />
                     </g>
-                    {/* readout */}
                     <text x="1237" y="298" textAnchor="middle" fontFamily="Space Grotesk, sans-serif" fontWeight="700" fontSize="34" fill="#F4F3EF">{pct}%</text>
                     <text x="1237" y="320" textAnchor="middle" fontFamily="Inter, sans-serif" fontWeight="600" fontSize="8.5" letterSpacing="2.5" fill="#C5C9D0">FAST CHARGING</text>
-                    {/* hint bars */}
                     <g opacity="0.75">
                       {[0, 1, 2].map((i) => (
                         <rect key={i} x={1216 + i * 15} y="338" width="9" height="4" rx="2" fill="#9CA3AF"
@@ -518,17 +584,13 @@ function FastCharge() {
                   </g>
                 )}
 
-                {/* charged — completed effect */}
                 {charged && (
                   <g style={{ animation: 'fade-in-soft 0.35s ease-out both' }}>
-                    {/* flash */}
                     <rect x="1168" y="96" width="139" height="309" rx="20" fill="#F4F3EF" style={{ animation: 'screen-flash 0.9s ease-out forwards' }} />
-                    {/* ring bursts */}
                     {[0, 0.25].map((d) => (
                       <circle key={d} cx="1237" cy="205" r="56" stroke="#9CA3AF" strokeWidth="1.5" fill="none"
                         style={{ animation: `ring-burst 1s ease-out ${d}s forwards`, transformBox: 'fill-box', transformOrigin: 'center' }} />
                     ))}
-                    {/* ZUNEX symbol */}
                     <g transform="translate(1165,137) scale(0.28)" fill="#B9BDC4" opacity="0.95">
                       {MARK_PATHS.map((d, i) => <path key={i} d={d} />)}
                     </g>
@@ -537,14 +599,49 @@ function FastCharge() {
                   </g>
                 )}
 
-                {/* port glow + port slot — socket on the bottom edge, facing down */}
                 {charging && (
-                  <circle cx="1237" cy="414" r="18" fill="url(#portGlow)" style={{ animation: 'port-glow 1.6s ease-in-out infinite', transformOrigin: '1237px 414px' }} />
+                  <circle cx="1237" cy="414" r="18" fill="url(#pmPortGlow)" style={{ animation: 'port-glow 1.6s ease-in-out infinite', transformOrigin: '1237px 414px' }} />
                 )}
                 <rect x="1226" y="410" width="22" height="7" rx="3.5" stroke="#6E6E76" strokeWidth="1.5" fill="#0D0D10" />
                </g>
               </g>
             </svg>
+
+            {/* ═══ LIVE SCREEN overlay — perspective-mapped onto the PLUS display.
+                Always in play mode: video only, from page load, no text. ═══ */}
+            <div ref={wrapRef} className="absolute inset-0" style={{ pointerEvents: 'none' }}>
+              <div
+                className="absolute left-0 top-0"
+                style={{
+                  width: 1000,
+                  height: 620,
+                  transformOrigin: '0 0',
+                  transform: matrix,
+                  opacity: matrix ? 1 : 0,
+                  pointerEvents: 'none',
+                }}
+              >
+                <div className="w-full h-full relative overflow-hidden bg-black">
+                  {/* Self-hosted ad, native player: always autoplays muted/looped,
+                      zero chrome, zero overlays, fills the glass edge to edge. */}
+                  <video
+                    src="/media/plus-ad.mp4"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="auto"
+                    aria-hidden
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ pointerEvents: 'none' }}
+                  />
+                  {/* faint LCD glass sheen over the video */}
+                  <div className="absolute inset-0 pointer-events-none" style={{
+                    background: 'linear-gradient(115deg, rgba(244,243,239,0.05) 0%, transparent 22%, transparent 78%, rgba(244,243,239,0.03) 100%)',
+                  }} />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </Reveal>
@@ -553,88 +650,265 @@ function FastCharge() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   PRODUCT SHOWCASE — Full-screen pinned scroll sections
+   PRODUCT SHOWCASE — ZUNEX ONE vs ZUNEX PLUS comparison
    ═══════════════════════════════════════════════════════════ */
+
+const QrIco = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4" y="4" width="6" height="6" rx="1.2" />
+    <rect x="14" y="4" width="6" height="6" rx="1.2" />
+    <rect x="4" y="14" width="6" height="6" rx="1.2" />
+    <path d="M14 14h3v3h-3z" />
+    <path d="M20 14v.01M17 20h3M20 17v3" />
+  </svg>
+);
+const WifiIco = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2.8 9.3C8 4.7 16 4.7 21.2 9.3" />
+    <path d="M5.8 12.8c3.6-3.1 8.8-3.1 12.4 0" />
+    <path d="M9 16.2c1.8-1.5 4.2-1.5 6 0" />
+    <circle cx="12" cy="19.2" r="0.6" fill="currentColor" stroke="none" />
+  </svg>
+);
+const TargetIco = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="8" />
+    <circle cx="12" cy="12" r="4" />
+    <circle cx="12" cy="12" r="0.7" fill="currentColor" stroke="none" />
+  </svg>
+);
+const SosIco = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3.5 21.5 20h-19L12 3.5Z" />
+    <path d="M12 10v4.5" />
+    <path d="M12 17.6v.01" />
+  </svg>
+);
+
+/* ═══════════════════════════════════════════════════════════
+   PRODUCT STAGE — museum spotlight, subtle 3D mouse tilt,
+   floor reflection. No circles/orbits/floating chips.
+   ═══════════════════════════════════════════════════════════ */
+function ProductStage({ img, name, glow, progress }: {
+  img: string; name: string; glow: string; progress: number;
+}) {
+  const mouse = useMousePosition();
+  const rx = -mouse.y * 3.5;
+  const ry = mouse.x * 5;
+
+  return (
+    <div className="relative mt-12 h-64 md:h-80 flex items-center justify-center">
+      {/* spotlight beam from above */}
+      <div className="absolute left-1/2 -translate-x-1/2 -top-10 w-[70%] h-[115%] pointer-events-none"
+        style={{
+          background: 'linear-gradient(180deg, rgba(244,243,239,0.09), rgba(244,243,239,0.02) 55%, transparent 85%)',
+          clipPath: 'polygon(41% 0%, 59% 0%, 100% 100%, 0% 100%)',
+          filter: 'blur(12px)',
+        }} />
+
+      {/* ambient glow behind device */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-80 h-52 rounded-full opacity-50 group-hover:opacity-90 transition-opacity duration-700"
+          style={{ background: `radial-gradient(closest-side, ${glow}, transparent)`, filter: 'blur(30px)' }} />
+      </div>
+
+      {/* device + reflection column */}
+      <div className="relative z-10 w-[68%] max-w-[420px]"
+        style={{ transform: `translateY(${(progress - 0.5) * -16}px)` }}>
+        {/* device with subtle 3D tilt */}
+        <div style={{ transform: `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg)`, transition: 'transform 0.25s ease-out', transformStyle: 'preserve-3d' }}>
+          <img
+            src={img} alt={name} loading="lazy"
+            className="w-full object-contain transition-transform duration-700 group-hover:scale-[1.03]"
+            style={{ filter: 'drop-shadow(0 22px 22px rgba(0,0,0,0.5))', transitionTimingFunction: 'var(--ease-lux)' }}
+          />
+        </div>
+
+        {/* floor reflection — mirrored, masked, blurred */}
+        <div aria-hidden className="h-12 md:h-14 overflow-hidden opacity-25"
+          style={{
+            WebkitMaskImage: 'linear-gradient(180deg, rgba(0,0,0,0.7), transparent 80%)',
+            maskImage: 'linear-gradient(180deg, rgba(0,0,0,0.7), transparent 80%)',
+          }}>
+          <img src={img} alt="" className="w-full object-contain"
+            style={{ transform: 'scaleY(-1)', filter: 'blur(3px) brightness(0.55)' }} />
+        </div>
+
+        {/* contact shadow at the junction */}
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-12 md:bottom-14 w-[70%] h-3 rounded-full bg-black/80"
+          style={{ filter: 'blur(10px)' }} />
+      </div>
+
+      {/* floor hairline */}
+      <div className="absolute bottom-5 inset-x-[6%] h-px pointer-events-none"
+        style={{ background: 'linear-gradient(90deg, transparent, rgba(244,243,239,0.14), transparent)' }} />
+    </div>
+  );
+}
+
 function ProductShowcase() {
-  const products = [
+  /* feature rows — `both` = on every device, else ZUNEX PLUS only */
+  const features = [
+    { icon: Ico.bolt, label: 'Fast charging', desc: 'USB-C PD + Lightning charger', both: true },
+    { icon: QrIco, label: 'UPI · QR · NFC', desc: 'Tap-to-pay on the hub', both: true },
+    { icon: WifiIco, label: 'WiFi', desc: 'Connected · OTA updated', both: true },
+    { icon: Ico.display, label: 'Media ad networks', desc: 'Monetise every charge', both: false },
+    { icon: TargetIco, label: 'Target marketing', desc: 'Precision campaigns', both: false },
+    { icon: SosIco, label: 'SOS alerts', desc: 'Emergency-ready hardware', both: false },
+  ];
+
+  const panels = [
     {
       name: 'ZUNEX ONE',
-      tag: 'Charging',
-      mono: 'steel' as const,
-      title: 'Pure power.\nDelivered clean.',
-      desc: 'The flagship charging hub. USB-C PD and 12V output in bead-blasted anodised aluminium. Laser-etched branding on every surface.',
-      img: '/products/hub.jpg',
-      specs: ['65W Output', 'USB-C PD', '12V Adapter', 'Anodised aluminium'],
+      ghost: 'ONE',
+      tag: 'Pure charging',
+      img: '/products/hub-cutout.png?v=2',
+      bg: 'var(--color-ink)',
+      accent: 'text-steel-bright',
+      glow: 'rgba(107,114,128,0.10)',
+      badge: '',
+      blurb: 'The flagship charging hub. Focused, refined, essential.',
+      spec: '65W · USB-C PD · 12V · Anodised aluminium',
     },
     {
-      name: 'ZUNEX MEDIA',
-      tag: 'Charging + Advertising',
-      mono: 'paper' as const,
-      title: 'Charge devices.\nMonetise attention.',
-      desc: 'The same hub with an integrated display module. Serve ads and content while devices charge. One platform, two revenue streams.',
-      img: '/products/display.jpg',
-      specs: ['Display module', 'Ad delivery', 'Dual revenue', 'Content ready'],
+      name: 'ZUNEX PLUS',
+      ghost: 'PLUS',
+      tag: 'Charging + Smart media',
+      img: '/products/plus-full-cutout.png',
+      bg: 'var(--color-ink-elevated)',
+      accent: 'text-paper',
+      glow: 'rgba(244,243,239,0.05)',
+      badge: 'MOST ADVANCED',
+      blurb: 'Everything ONE does — plus a smart media platform built in.',
+      spec: '65W · Display module · WiFi · Ad engine',
     },
   ];
 
   return (
-    <section id="product" className="relative">
-      {products.map((p, i) => {
-        const { ref, progress } = useScrollProgressOnView();
-        return (
-          <div
-            key={i}
-            ref={ref}
-            className="min-h-screen flex items-center relative overflow-hidden noise-bg"
-            style={{ background: i === 0 ? 'var(--color-ink)' : 'var(--color-ink-elevated)' }}
-          >
-            <MeshBG variant="dark" />
-            <div className="relative max-w-container mx-auto px-6 lg:px-8 w-full grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-              {/* Text */}
-              <div className={i === 1 ? 'lg:order-2' : ''}>
-                <Reveal>
-                  <div className="flex items-center gap-3 mb-6">
-                    <Monogram size={28} variant={p.mono} />
-                    <span className="text-[11px] font-semibold text-steel-bright tracking-[0.2em] uppercase">{p.name}</span>
-                  </div>
-                </Reveal>
-                <RevealWords
-                  text={p.title.replace('\n', ' ')}
-                  className="font-display text-[clamp(2rem,5vw,4.5rem)] font-bold leading-[1.05] tracking-[-0.03em] text-paper mb-6"
-                  stagger={0.08}
-                />
-                <Reveal delay={0.3}>
-                  <p className="text-base md:text-lg text-paper-soft font-light leading-relaxed max-w-md mb-8">{p.desc}</p>
-                </Reveal>
-                <Reveal delay={0.4}>
-                  <div className="flex flex-wrap gap-3">
-                    {p.specs.map((s) => (
-                      <span key={s} className="text-[11px] px-4 py-2 rounded-full hairline text-paper-dim tracking-wide">{s}</span>
-                    ))}
-                  </div>
-                </Reveal>
-              </div>
-
-              {/* Floating product image with parallax */}
-              <div className={`relative ${i === 1 ? 'lg:order-1' : ''}`}>
-                <Reveal delay={0.2}>
-                  <div className="relative aspect-[4/3] rounded-3xl overflow-hidden border-gradient hairline"
-                    style={{
-                      transform: `translateY(${(progress - 0.5) * -60}px) scale(${0.9 + progress * 0.1})`,
-                      transition: 'transform 0.1s ease-out',
-                    }}
-                  >
-                    <img src={p.img} alt={p.name} loading="lazy" className="w-full h-full object-cover" style={{ opacity: 0.7 }} />
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(8,8,10,0.3) 0%, transparent 50%, rgba(8,8,10,0.5) 100%)' }} />
-                    {/* Glow */}
-                    <div className="absolute -inset-4 -z-10 rounded-3xl" style={{ background: 'radial-gradient(circle at 50% 50%, rgba(107,114,128,0.08), transparent 70%)', filter: 'blur(40px)' }} />
-                  </div>
-                </Reveal>
-              </div>
+    <section id="product" className="relative noise-bg">
+      <MeshBG variant="dark" />
+      <div className="max-w-container mx-auto px-6 lg:px-8 py-28 lg:py-40">
+        {/* header */}
+        <div className="text-center mb-16 lg:mb-24">
+          <Reveal>
+            <div className="inline-flex items-center gap-2 mb-6">
+              <span className="w-1 h-1 rounded-full bg-steel" style={{ animation: 'pulse-soft 2s ease-in-out infinite' }} />
+              <span className="text-[10px] font-medium text-paper-dim tracking-[0.25em] uppercase">The lineup — compare</span>
             </div>
-          </div>
-        );
-      })}
+          </Reveal>
+          <RevealWords
+            text="One platform. Two devices."
+            className="font-display text-[clamp(2.2rem,6vw,5rem)] font-bold leading-[1.02] tracking-[-0.03em] text-paper"
+            stagger={0.07}
+          />
+          <Reveal delay={0.35}>
+            <p className="mt-6 text-paper-soft font-light max-w-xl mx-auto">
+              Every ZUNEX hub charges at full speed and accepts payments. PLUS adds an entire media business on top.
+            </p>
+          </Reveal>
+        </div>
+
+        {/* comparison grid */}
+        <div className="relative grid lg:grid-cols-2 gap-8 lg:gap-16">
+          {panels.map((p, pi) => {
+            const { ref, progress } = useScrollProgressOnView();
+            const isPlus = pi === 1;
+            return (
+              <div key={p.name} ref={ref} className="relative">
+                <div
+                  className="group relative h-full rounded-[2rem] overflow-hidden border-gradient hairline transition-all duration-700"
+                  style={{ background: p.bg, transitionTimingFunction: 'var(--ease-lux)' }}
+                >
+                  {/* hover glow orb */}
+                  <div className="absolute -top-24 right-0 w-96 h-96 rounded-full blur-[110px] opacity-40 group-hover:opacity-90 transition-opacity duration-700"
+                    style={{ background: p.glow }} />
+
+                  {/* ghost name behind content */}
+                  <span aria-hidden className="pointer-events-none select-none absolute -bottom-8 -right-4 font-display font-bold leading-none"
+                    style={{ fontSize: 'clamp(6rem, 10vw, 11rem)', letterSpacing: '-0.04em', color: 'rgba(244,243,239,0.035)' }}>
+                    {p.ghost}
+                  </span>
+
+                  <div className="relative p-8 lg:p-12 flex flex-col h-full">
+                    {/* head */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <Monogram size={26} variant={isPlus ? 'paper' : 'steel'} />
+                        <div>
+                          <h3 className="font-display text-2xl font-bold text-paper tracking-[-0.02em]">{p.name}</h3>
+                          <p className={`text-[11px] font-medium tracking-[0.18em] uppercase mt-0.5 ${p.accent}`}>{p.tag}</p>
+                        </div>
+                      </div>
+                      {p.badge && (
+                        <span className="text-[9px] font-semibold tracking-[0.2em] px-3 py-1.5 rounded-full border border-paper/20 text-paper-soft whitespace-nowrap">
+                          {p.badge}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* product stage — museum spotlight, no box */}
+                    <Reveal delay={0.15}>
+                      <ProductStage img={p.img} name={p.name} glow={p.glow} progress={progress} />
+                    </Reveal>
+                    <Reveal delay={0.22}>
+                      <p className="text-center text-[10px] font-medium tracking-[0.18em] text-paper-dim uppercase -mt-1">{p.spec}</p>
+                    </Reveal>
+
+                    {/* blurb */}
+                    <Reveal delay={0.2}>
+                      <p className="mt-7 text-sm text-paper-soft font-light leading-relaxed">{p.blurb}</p>
+                    </Reveal>
+
+                    {/* feature rows — ONE: core (on every hub) · PLUS: exclusive additions only */}
+                    <Reveal delay={0.25}>
+                      <p className="mt-7 mb-1 text-[9px] font-semibold tracking-[0.22em] text-paper-dim/70 uppercase">
+                        {isPlus ? 'Exclusive to PLUS' : 'Core — on every hub'}
+                      </p>
+                    </Reveal>
+                    <div className="space-y-1">
+                      {features
+                        .filter((f) => (isPlus ? !f.both : f.both))
+                        .map((f, fi) => (
+                          <Reveal key={f.label} delay={0.28 + fi * 0.06}>
+                            <div
+                              className={`relative flex items-center gap-4 py-3.5 ${
+                                fi > 0 ? 'border-t border-paper/[0.06]' : ''
+                              }`}
+                            >
+                              <span className="w-9 h-9 shrink-0 rounded-xl border border-paper/12 flex items-center justify-center text-steel-bright [&>svg]:w-4 [&>svg]:h-4">
+                                {f.icon}
+                              </span>
+                              <span className="flex-1 min-w-0">
+                                <span className="block font-display text-sm font-semibold tracking-wide text-paper">
+                                  {f.label}
+                                </span>
+                                <span className="block text-[11px] text-paper-dim font-light">{f.desc}</span>
+                              </span>
+                              {isPlus && (
+                                <span className="text-[9px] tracking-[0.18em] font-semibold px-2.5 py-1 rounded-full bg-paper/10 text-paper whitespace-nowrap">
+                                  ADDS
+                                </span>
+                              )}
+                            </div>
+                          </Reveal>
+                        ))}
+                    </div>
+
+                    {/* CTA */}
+                    <Reveal delay={0.55}>
+                      <a href="#contact" data-hover
+                        className="mt-9 inline-flex items-center gap-2 text-[12px] font-semibold tracking-[0.08em] uppercase text-paper border border-paper/20 rounded-full px-7 py-3 hover:bg-paper hover:text-ink transition-all duration-500 w-max"
+                        style={{ transitionTimingFunction: 'var(--ease-lux)' }}>
+                        Explore {isPlus ? 'PLUS' : 'ONE'} <span className="w-3.5 h-3.5 inline-block [&>svg]:w-full [&>svg]:h-full">{Ico.arrow}</span>
+                      </a>
+                    </Reveal>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </section>
   );
 }
@@ -661,39 +935,6 @@ function useScrollProgressOnView() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   FULL RANGE — Parallax wide image
-   ═══════════════════════════════════════════════════════════ */
-function FullRange() {
-  const { ref, progress } = useScrollProgress<HTMLDivElement>();
-  return (
-    <div ref={ref} className="relative h-[80vh] overflow-hidden">
-      <img
-        src="/products/range.jpg"
-        alt="ZUNEX full product range"
-        loading="lazy"
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{
-          opacity: 0.4 + progress * 0.4,
-          transform: `scale(${1.15 - progress * 0.1}) translateY(${(0.5 - progress) * 60}px)`,
-        }}
-      />
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, var(--color-ink) 0%, transparent 30%, transparent 70%, var(--color-ink) 100%)' }} />
-      <div className="absolute inset-0 flex items-center justify-center">
-        <Reveal>
-          <div className="text-center">
-            <div className="text-[11px] font-semibold text-steel-bright tracking-[0.25em] uppercase mb-4">The full range</div>
-            <p className="font-display text-[clamp(1.5rem,4vw,3rem)] font-bold text-paper max-w-2xl mx-auto leading-tight tracking-[-0.02em]">
-              Hub, coiled cable, 12V adapter, display module.
-            </p>
-            <p className="mt-4 text-paper-soft text-sm font-light">One mark per surface. Never both.</p>
-          </div>
-        </Reveal>
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════
    BRAND STORY — Editorial split layout
    ═══════════════════════════════════════════════════════════ */
 function BrandStory() {
@@ -703,22 +944,22 @@ function BrandStory() {
       <div className="relative max-w-container mx-auto px-6 lg:px-8">
         {/* Section label */}
         <Reveal>
-          <div className="text-[11px] font-semibold text-steel-bright tracking-[0.25em] uppercase mb-6">01 — Naming</div>
+          <div className="text-[11px] font-semibold text-steel-bright tracking-[0.25em] uppercase mb-6">The Device</div>
         </Reveal>
 
         {/* Massive editorial heading */}
         <RevealWords
-          text="A compact, global-sounding name with a distinctly future-facing character."
+          text="One device. Two revenue streams. Zero staff time."
           className="font-display text-[clamp(1.8rem,4.5vw,4rem)] font-bold leading-[1.1] tracking-[-0.03em] text-paper max-w-4xl mb-20"
           stagger={0.04}
         />
 
-        {/* Name architecture — 3 columns */}
+        {/* Device economics — 3 columns */}
         <div className="grid md:grid-cols-3 gap-6 mb-24">
           {[
-            { symbol: 'ZUN', title: 'Distinctive sound', desc: 'Sits on the Germanic root behind sun — zon in Dutch, zun in Yiddish, Sonne in German. Energy at its source.' },
-            { symbol: 'EX', title: 'Forward-looking', desc: 'Next, exceed, exchange. The terminal E resolves into an arrow — the mark itself draws the idea.' },
-            { symbol: '尊', title: 'Honour and prestige', desc: 'In Mandarin, zūn carries honour and prestige — the syllable behind zūnxiǎng, the standard term for premium.' },
+            { symbol: '65W', title: 'Charging, metered', desc: 'Pay-per-charge or free with a tap. Every session is metered and reported to the venue dashboard.' },
+            { symbol: 'AD', title: 'Screens that earn', desc: 'The built-in LCD plays ad placements while people wait. The venue takes a share of every play.' },
+            { symbol: 'API', title: 'Built to connect', desc: 'Open API and SDK plug charging and screen placements into POS, loyalty and venue systems.' },
           ].map((item, i) => (
             <Reveal key={i} delay={i * 0.15}>
               <div className="group p-8 rounded-3xl border-gradient hairline hover:bg-ink-card transition-all duration-500 h-full">
@@ -730,41 +971,170 @@ function BrandStory() {
           ))}
         </div>
 
-        {/* Philosophy */}
-        <div className="grid lg:grid-cols-2 gap-16 items-start">
-          <div>
-            <Reveal>
-              <div className="text-[11px] font-semibold text-steel-bright tracking-[0.25em] uppercase mb-6">02 — Philosophy</div>
-            </Reveal>
-            <RevealWords
-              text="Beyond the expected."
-              className="font-display text-[clamp(2rem,5vw,4rem)] font-bold leading-tight tracking-[-0.03em] text-gradient-lux mb-8"
-            />
-            <Reveal delay={0.3}>
-              <p className="text-lg text-paper-soft leading-relaxed font-light">
-                A promise broad enough to grow with the brand. Category-free, so it carries the charging hub, the display unit, and whatever follows. This is a charging brand, not a solar one — no rays, no discs, no warm gradients.
-              </p>
-            </Reveal>
+        {/* Philosophy — The Opportunity */}
+        <div className="relative">
+          {/* Ghost word watermark */}
+          <div aria-hidden="true" className="absolute -bottom-8 left-0 pointer-events-none select-none hidden lg:block">
+            <div
+              className="font-display font-bold leading-none tracking-[-0.03em] text-[clamp(5rem,11vw,10rem)]"
+              style={{
+                backgroundImage: 'linear-gradient(180deg, rgba(244,243,239,0.065) 0%, rgba(244,243,239,0.02) 78%, rgba(244,243,239,0.01) 100%)',
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                color: 'transparent',
+              }}
+            >
+              AUDIENCE
+            </div>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
-            {[
-              { title: 'Never rebuild', desc: 'The logotype is one fixed piece of artwork. Always place the supplied file.' },
-              { title: 'One mark per surface', desc: 'Logotype on the brand plate, monogram on hardware. Never both.' },
-              { title: '4.5:1 contrast', desc: 'The mark must clear 4.5:1 against whatever sits behind it. Always.' },
-              { title: 'Superellipse only', desc: 'Corner radius fixed at 26.8%. Never a circle, never a plain square.' },
-            ].map((p, i) => (
-              <Reveal key={i} delay={0.2 + i * 0.1}>
-                <div className="p-6 rounded-2xl border-gradient hairline hover:border-steel/30 transition-colors duration-500">
-                  <div className="text-sm font-semibold text-paper mb-1.5">{p.title}</div>
-                  <p className="text-xs text-paper-dim leading-relaxed">{p.desc}</p>
+          <div className="grid lg:grid-cols-2 gap-16 items-start relative">
+            {/* Left — narrative + dwell meter + figures */}
+            <div>
+              <Reveal>
+                <div className="text-[11px] font-semibold text-steel-bright tracking-[0.25em] uppercase mb-6">The Opportunity</div>
+              </Reveal>
+              <RevealWords
+                text="Every charge is an audience."
+                className="font-display text-[clamp(2rem,5vw,4rem)] font-bold leading-tight tracking-[-0.03em] text-gradient-lux mb-8"
+              />
+              <Reveal delay={0.3}>
+                <p className="text-lg text-paper-soft leading-relaxed font-light">
+                  Charging takes three to fifteen minutes — the most valuable dwell time in retail. The device turns it into measurable attention and direct revenue for the venue, with nothing extra to manage.
+                </p>
+              </Reveal>
+
+              {/* Dwell window meter */}
+              <Reveal delay={0.4}>
+                <div className="mt-10 p-6 rounded-2xl border-gradient hairline relative overflow-hidden">
+                  <div className="flex items-center justify-between mb-5">
+                    <span className="text-[10px] font-semibold tracking-[0.25em] uppercase text-paper-faint">Dwell window</span>
+                    <span className="font-display text-sm font-semibold text-steel-bright">3–15 min</span>
+                  </div>
+                  <div className="relative h-[3px] rounded-full bg-paper/10 overflow-hidden">
+                    <div
+                      className="absolute inset-0"
+                      style={{ background: 'linear-gradient(90deg, rgba(107,114,128,0.2) 0%, rgba(156,163,175,0.85) 50%, rgba(107,114,128,0.2) 100%)' }}
+                    />
+                    <div
+                      className="dwell-sweep absolute inset-y-0 w-1/3"
+                      style={{ background: 'linear-gradient(90deg, transparent, rgba(238,238,240,0.95), transparent)' }}
+                    />
+                  </div>
+                  <div className="flex justify-between mt-3.5 text-[9px] font-medium tracking-[0.18em] uppercase text-paper-faint">
+                    <span>Tap to start</span>
+                    <span>Attention peak</span>
+                    <span>Session ends</span>
+                  </div>
                 </div>
               </Reveal>
-            ))}
+
+              {/* Compact figures */}
+              <Reveal delay={0.5}>
+                <div className="mt-4 grid grid-cols-3 gap-px rounded-2xl overflow-hidden hairline bg-paper/5">
+                  {[
+                    { v: 15, s: ' min', l: 'Avg. dwell' },
+                    { v: 2, s: '×', l: 'Revenue streams' },
+                    { v: 0, s: '', l: 'Staff hours' },
+                  ].map((f, i) => (
+                    <div key={i} className="bg-ink-elevated px-5 py-5">
+                      <div className="font-display text-2xl font-bold text-paper">
+                        <Counter to={f.v} suffix={f.s} />
+                      </div>
+                      <div className="text-[9px] font-medium tracking-[0.2em] uppercase text-paper-faint mt-1.5">{f.l}</div>
+                    </div>
+                  ))}
+                </div>
+              </Reveal>
+            </div>
+
+            {/* Right — interactive revenue cards */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              {[
+                {
+                  icon: (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M13 2 4.8 13.2h5.7L10.4 22l8.8-11.2h-5.7L13 2z" />
+                    </svg>
+                  ),
+                  title: 'Pay-per-charge',
+                  desc: 'Set your price per session. Revenue lands in the dashboard as it happens.',
+                },
+                {
+                  icon: (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4.5" width="18" height="13" rx="2" />
+                      <path d="M10.2 8.4l4.6 2.6-4.6 2.6V8.4z" fill="currentColor" stroke="none" />
+                      <path d="M8.5 21h7" />
+                    </svg>
+                  ),
+                  title: 'Ad share',
+                  desc: 'Venues earn from every placement played on their unit’s screen.',
+                },
+                {
+                  icon: (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="8.5" />
+                      <path d="M12 7.5V12l3 1.8" />
+                    </svg>
+                  ),
+                  title: 'Sponsored hours',
+                  desc: 'Local businesses sponsor free charging. The venue still collects.',
+                },
+                {
+                  icon: (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 3l7 2.8v5.4c0 4.3-2.9 7.3-7 9.8-4.1-2.5-7-5.5-7-9.8V5.8L12 3z" />
+                      <path d="M9.2 11.6l2 2 3.8-4.2" />
+                    </svg>
+                  ),
+                  title: 'Zero upkeep',
+                  desc: 'No consumables, no staff training. Ships venue-ready.',
+                },
+              ].map((p, i) => (
+                <OpportunityCard key={p.title} icon={p.icon} title={p.title} desc={p.desc} delay={0.2 + i * 0.1} />
+              ))}
+            </div>
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+/* Spotlight card — cursor-tracked glow for the Opportunity grid */
+function OpportunityCard({ icon, title, desc, delay }: { icon: React.ReactNode; title: string; desc: string; delay: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [spot, setSpot] = useState<{ x: number; y: number } | null>(null);
+  return (
+    <Reveal delay={delay}>
+      <div
+        ref={ref}
+        data-hover
+        onMouseMove={(e) => {
+          const r = ref.current?.getBoundingClientRect();
+          if (r) setSpot({ x: e.clientX - r.left, y: e.clientY - r.top });
+        }}
+        onMouseLeave={() => setSpot(null)}
+        className="group relative p-6 rounded-2xl border-gradient hairline overflow-hidden hover:bg-ink-card transition-all duration-500 hover:-translate-y-1"
+      >
+        {/* cursor spotlight */}
+        <div
+          className="absolute inset-0 pointer-events-none transition-opacity duration-500"
+          style={{
+            opacity: spot ? 1 : 0,
+            background: spot ? `radial-gradient(240px circle at ${spot.x}px ${spot.y}px, rgba(156,163,175,0.10), transparent 65%)` : 'none',
+          }}
+        />
+        <div className="relative">
+          <div className="w-10 h-10 rounded-xl hairline bg-ink-card/60 flex items-center justify-center mb-5 text-steel-bright group-hover:text-paper transition-colors duration-500">
+            {icon}
+          </div>
+          <div className="text-sm font-semibold text-paper mb-1.5">{title}</div>
+          <p className="text-xs text-paper-dim leading-relaxed">{desc}</p>
+        </div>
+      </div>
+    </Reveal>
   );
 }
 
@@ -773,25 +1143,25 @@ function BrandStory() {
    ═══════════════════════════════════════════════════════════ */
 function Technology() {
   const parts = [
-    { img: '/products/adapter.jpg', title: 'Adapter collar', desc: '12V output. Monogram on the connector.' },
-    { img: '/products/cable.jpg', title: 'Cable end', desc: 'Coiled cable. USB-C housing with etched mark.' },
-    { img: '/products/tappad.jpg', title: 'Tap pad', desc: 'Contact surface. Precision-machined.' },
-    { img: '/products/brandplate.jpg', title: 'Brand plate', desc: 'Logotype on the plate. One mark per surface.' },
+    { img: '/products/adapter.jpg', title: 'Adapter collar', desc: '12V output for tethered charging. Machined, not moulded.' },
+    { img: '/products/cable.jpg', title: 'Cable end', desc: 'Coiled cable with a reinforced USB-C housing.' },
+    { img: '/products/tappad.jpg', title: 'Tap pad', desc: 'One tap starts a session. Precision-machined contact surface.' },
+    { img: '/products/brandplate.jpg', title: 'Front plate', desc: 'Anodised and serialised for fleet management.' },
   ];
   return (
     <section id="tech" className="relative py-32 lg:py-48 noise-bg overflow-hidden">
       <MeshBG variant="dark" />
       <div className="relative max-w-container mx-auto px-6 lg:px-8">
         <Reveal>
-          <div className="text-[11px] font-semibold text-steel-bright tracking-[0.25em] uppercase mb-6">03 — Technology</div>
+          <div className="text-[11px] font-semibold text-steel-bright tracking-[0.25em] uppercase mb-6">Inside the Device</div>
         </Reveal>
         <RevealWords
-          text="The mark in use."
+          text="The device, up close."
           className="font-display text-[clamp(2rem,5vw,4rem)] font-bold leading-tight tracking-[-0.03em] text-paper mb-6"
         />
         <Reveal delay={0.3}>
           <p className="text-lg text-paper-soft font-light leading-relaxed max-w-xl mb-16">
-            Logotype on the brand plate, monogram on hardware too small to carry it. Every component is designed, branded, and finished to the same standard.
+            Every component is machined, sealed and tested for years of public use — built to be tapped, plugged and trusted thousands of times a month.
           </p>
         </Reveal>
 
@@ -820,7 +1190,7 @@ function Technology() {
               { v: 100, s: 'W', l: 'Charging output' },
               { v: 12, s: 'V', l: 'Voltage' },
               { v: 24, s: '/7', l: 'Always on' },
-              { v: 4, s: '', l: 'Colorways' },
+              { v: 15, s: ' min', l: 'Install to live' },
             ].map((stat, i) => (
               <div key={i} className="p-8 rounded-2xl border-gradient hairline text-center hover:bg-ink-card transition-colors duration-300">
                 <div className="font-display text-4xl font-bold text-paper">
@@ -837,146 +1207,92 @@ function Technology() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   BUSINESS MODELS — Two massive panels
+   FOOTER — carries the #contact anchor (Contact links land here).
+   Four link columns: Product / Ecosystem / Developers / Legal.
    ═══════════════════════════════════════════════════════════ */
-function BusinessModels() {
-  return (
-    <section id="business" className="relative py-32 lg:py-48 noise-bg overflow-hidden bg-ink-elevated">
-      <MeshBG variant="steel" />
-      <div className="relative max-w-container mx-auto px-6 lg:px-8">
-        <Reveal>
-          <div className="text-[11px] font-semibold text-steel-bright tracking-[0.25em] uppercase mb-6">04 — Business</div>
-        </Reveal>
-        <RevealWords
-          text="Two models. One platform."
-          className="font-display text-[clamp(2rem,5vw,4rem)] font-bold leading-tight tracking-[-0.03em] text-paper mb-16"
-        />
+type FootLinkItem = { label: string; href: string } | { divider: true };
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          {[
-            {
-              mono: 'steel' as const,
-              name: 'ZUNEX ONE',
-              tag: 'Charging',
-              desc: 'Deploy charging hubs in high-traffic locations. Monetise through charging fees. Pure, focused, reliable.',
-              items: ['Per-charge revenue', 'Location partnerships', 'Subscription models', 'Fleet deployment'],
-            },
-            {
-              mono: 'paper' as const,
-              name: 'ZUNEX MEDIA',
-              tag: 'Charging + Advertising',
-              desc: 'Add a display module to the same hub. Serve ads and content while devices charge. Double the revenue, same footprint.',
-              items: ['Ad delivery revenue', 'Charging fees', 'Content partnerships', 'Sponsorship slots'],
-            },
-          ].map((model, i) => (
-            <Reveal key={i} delay={i * 0.15}>
-              <div className="group relative p-10 lg:p-12 rounded-3xl border-gradient hairline overflow-hidden hover:border-steel/30 transition-all duration-500 h-full">
-                <div className="absolute top-0 right-0 w-72 h-72 rounded-full blur-[100px] opacity-50 group-hover:opacity-80 transition-opacity duration-700"
-                  style={{ background: model.mono === 'steel' ? 'rgba(107,114,128,0.1)' : 'rgba(244,243,239,0.04)' }} />
-                <div className="relative">
-                  <Monogram size={44} variant={model.mono} />
-                  <h3 className="mt-8 font-display text-3xl font-bold text-paper">{model.name}</h3>
-                  <p className={`text-sm font-medium mt-1 ${model.mono === 'steel' ? 'text-steel-bright' : 'text-paper-soft'}`}>{model.tag}</p>
-                  <p className="mt-5 text-paper-soft leading-relaxed text-sm font-light">{model.desc}</p>
-                  <div className="mt-8 space-y-3">
-                    {model.items.map((item) => (
-                      <div key={item} className="flex items-center gap-3 text-sm text-paper-soft">
-                        <span className="w-1 h-1 rounded-full" style={{ background: model.mono === 'steel' ? 'var(--color-steel-bright)' : 'var(--color-paper)' }} />
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+const FOOTER_COLS: { title: string; links: FootLinkItem[] }[] = [
+  {
+    title: 'Product',
+    links: [
+      { label: 'Zunex Core', href: '/#product' },
+      { label: 'Zunex Plus', href: '/#plus-media' },
+      { label: 'Accessories', href: '/#product' },
+      { label: 'Support', href: '/owner' },
+    ],
+  },
+  {
+    title: 'Ecosystem',
+    links: [
+      { label: 'Technology Partners', href: '/enterprise' },
+      { label: 'Sustainability', href: '/#brand' },
+      { divider: true },
+      { label: 'Venue Solutions', href: '/enterprise' },
+      { label: 'Installation Network', href: '/enterprise' },
+      { label: 'Content Program', href: '/advertise' },
+    ],
+  },
+  {
+    title: 'Developers',
+    links: [
+      { label: 'Open API', href: '#' },
+      { label: 'SDK & Widgets', href: '#' },
+      { label: 'Dashboard', href: '/owner' },
+      { label: 'Status · Changelog · GitHub', href: '#' },
+    ],
+  },
+  {
+    title: 'Legal & Policies',
+    links: [
+      { label: 'Terms · Privacy', href: '#' },
+      { label: 'GDPR / CCPA', href: '#' },
+      { label: 'Warranty · Returns', href: '/owner' },
+      { label: 'Cookie Preferences', href: '#' },
+    ],
+  },
+];
+
+function FootLink({ href, label }: { href: string; label: string }) {
+  const cls = 'text-[13px] text-paper-dim hover:text-paper transition-colors';
+  if (href === '#') {
+    return <a href="#" onClick={(e) => e.preventDefault()} data-hover className={cls}>{label}</a>;
+  }
+  return <Link to={href} data-hover className={cls}>{label}</Link>;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   CTA — Full screen, centered, cinematic
-   ═══════════════════════════════════════════════════════════ */
-function CTA() {
-  const { ref, progress } = useScrollProgress<HTMLDivElement>();
-  return (
-    <section id="contact" ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden noise-bg">
-      <MeshBG variant="steel" />
-
-      {/* Parallax giant official mark */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none"
-        style={{ transform: `scale(${1 + progress * 0.4})`, opacity: 0.05 }}>
-        <Mark size={680} color="var(--color-paper)" />
-      </div>
-
-      <div className="relative z-10 text-center px-6">
-        <Reveal>
-          <div className="inline-block mb-10" style={{ animation: 'pulse-soft 3s ease-in-out infinite' }}>
-            <Monogram size={52} variant="steel" />
-          </div>
-        </Reveal>
-        <div style={{ overflow: 'hidden' }}>
-          <Reveal delay={0.1} y={50}>
-            <h2 className="font-display font-bold tracking-[-0.04em] leading-[0.9] text-paper" style={{ fontSize: 'clamp(2.5rem, 10vw, 9rem)' }}>
-              Beyond the
-            </h2>
-          </Reveal>
-        </div>
-        <div style={{ overflow: 'hidden' }}>
-          <Reveal delay={0.2} y={50}>
-            <h2 className="font-display font-bold tracking-[-0.04em] leading-[0.9] text-shimmer" style={{ fontSize: 'clamp(2.5rem, 10vw, 9rem)' }}>
-              expected.
-            </h2>
-          </Reveal>
-        </div>
-        <Reveal delay={0.35}>
-          <p className="mt-10 text-lg text-paper-soft max-w-md mx-auto font-light leading-relaxed">
-            Whether you need charging, media, or both — ZUNEX is engineered to fit.
-          </p>
-        </Reveal>
-        <Reveal delay={0.5}>
-          <div className="mt-12 flex items-center justify-center gap-4">
-            <MagneticLink href="mailto:hello@zunex.com" primary>
-              Get in touch
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 8h12M10 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </MagneticLink>
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════
-   FOOTER
-   ═══════════════════════════════════════════════════════════ */
 function Footer() {
   return (
-    <footer className="hairline-t py-16 relative overflow-hidden">
+    <footer id="contact" className="hairline-t py-16 relative overflow-hidden">
       <div className="max-w-container mx-auto px-6 lg:px-8">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 mb-14">
-          <div className="flex items-center gap-3 text-paper">
-            <Monogram size={32} variant="steel" />
-            <Logotype className="h-5" />
+        <div className="grid lg:grid-cols-[1.1fr_2fr] gap-14 mb-16">
+          {/* Brand block */}
+          <div>
+            <div className="flex items-center gap-3 text-paper mb-4">
+              <Monogram size={32} variant="steel" />
+              <Logotype className="h-5" />
+            </div>
+            <p className="text-[13px] text-paper-dim font-light leading-relaxed max-w-[240px]">
+              Premium charging hardware. Beyond the expected.
+            </p>
+            <div className="text-[12px] text-paper-faint mt-8">© 2026 ZUNEX. All rights reserved.</div>
           </div>
-          <div className="flex flex-wrap gap-x-8 gap-y-3">
-            {['Product', 'Brand', 'Technology', 'Business', 'Contact'].map((l) => (
-              <a key={l} href={`#${l.toLowerCase()}`} data-hover className="text-[13px] text-paper-dim hover:text-paper transition-colors">{l}</a>
+
+          {/* Four link columns */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {FOOTER_COLS.map((col) => (
+              <div key={col.title}>
+                <div className="text-[10px] font-semibold tracking-[0.25em] uppercase text-paper-faint mb-5">{col.title}</div>
+                <ul className="flex flex-col gap-3">
+                  {col.links.map((l, i) =>
+                    'divider' in l
+                      ? <li key={`d${i}`} className="my-2 h-px w-6 bg-paper/15" aria-hidden="true" />
+                      : <li key={l.label}><FootLink href={l.href} label={l.label} /></li>
+                  )}
+                </ul>
+              </div>
             ))}
           </div>
-          <div className="text-[12px] text-paper-dim">© 2026 ZUNEX</div>
-        </div>
-
-        {/* Wordmark lockup */}
-        <div className="pt-10 hairline-t">
-          <Reveal>
-            <div className="flex flex-col items-center gap-8 py-12">
-              <Logotype className="h-12 md:h-16 opacity-90" />
-              <p className="text-[10px] tracking-[0.35em] uppercase text-paper-faint">Beyond the expected</p>
-            </div>
-          </Reveal>
         </div>
       </div>
     </footer>
@@ -984,26 +1300,60 @@ function Footer() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   APP
+   HOMEPAGE — the single-page site
+   ═══════════════════════════════════════════════════════════ */
+function HomePage() {
+  return (
+    <main>
+      <Hero />
+      <Marquee />
+      <FastCharge />
+      <ProductShowcase />
+      <PlusMediaHero />
+      <BrandStory />
+      <Technology />
+    </main>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SCROLL MANAGER — scroll to top on route change, or smooth
+   to the anchor element when the location carries a hash.
+   ═══════════════════════════════════════════════════════════ */
+function ScrollManager() {
+  const { pathname, hash, key } = useLocation();
+  useEffect(() => {
+    if (hash) {
+      requestAnimationFrame(() => {
+        document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    } else {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    }
+  }, [pathname, hash, key]);
+  return null;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   APP — router shell: shared chrome + one route per page
    ═══════════════════════════════════════════════════════════ */
 export default function App() {
   return (
-    <>
+    <BrowserRouter>
+      <ScrollManager />
       <CustomCursor />
       <ScrollProgress />
       <Navbar />
-      <main>
-        <Hero />
-        <Marquee />
-        <FastCharge />
-        <ProductShowcase />
-        <FullRange />
-        <BrandStory />
-        <Technology />
-        <BusinessModels />
-        <CTA />
-      </main>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/owner" element={<OwnerPage />} />
+        <Route path="/fast-charge" element={<FastChargePage />} />
+        <Route path="/advertise" element={<AdvertisePage />} />
+        <Route path="/enterprise" element={<EnterprisePage />} />
+        <Route path="/roi" element={<RoiPage />} />
+        <Route path="*" element={<HomePage />} />
+      </Routes>
       <Footer />
-    </>
+    </BrowserRouter>
   );
 }

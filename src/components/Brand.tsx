@@ -57,17 +57,17 @@ export function Mark({ size = 40, className = '', color = 'rgba(244,243,239,0.12
   );
 }
 
-/** Custom cursor — minimal dot only */
+/** Custom cursor — ZUNEX mark follows the pointer */
 export function CustomCursor() {
-  const dotRef = useRef<HTMLDivElement>(null);
+  const markRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
-      if (dotRef.current) dotRef.current.style.transform = `translate(${e.clientX - 2.5}px, ${e.clientY - 2.5}px)`;
+      if (markRef.current) markRef.current.style.transform = `translate(${e.clientX - 13}px, ${e.clientY - 13}px)`;
     };
     window.addEventListener('mousemove', onMove);
     return () => window.removeEventListener('mousemove', onMove);
   }, []);
-  return <div ref={dotRef} className="cursor-dot hidden md:block" />;
+  return <div ref={markRef} className="cursor-mark hidden md:block" />;
 }
 
 /** Scroll progress — thin steel gradient line */

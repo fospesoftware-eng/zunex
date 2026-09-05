@@ -9,6 +9,13 @@ export default defineConfig({
   server: {
     port: 3100,
     host: '0.0.0.0',
+    // Allow Replit / proxy preview domains
+    allowedHosts: true,
+  },
+  preview: {
+    port: 3100,
+    host: '0.0.0.0',
+    allowedHosts: true,
   },
   resolve: {
     alias: {

@@ -47,6 +47,12 @@
     cursor: none;
     letter-spacing: -0.011em;
   }
+  /* native cursor fully replaced by the round dot — no pointer/hand anywhere */
+  @media (hover: hover) and (pointer: fine) {
+    * {
+      cursor: none !important;
+    }
+  }
   ::selection {
     background: var(--color-steel);
     color: var(--color-paper);
@@ -130,15 +136,17 @@
   ::-webkit-scrollbar-thumb:hover { background: var(--color-steel-bright); }
 }
 
-/* ── Custom Cursor ── */
-.cursor-dot {
+/* ── Custom Cursor — ZUNEX mark ── */
+.cursor-mark {
   position: fixed;
-  width: 5px; height: 5px;
+  top: 0; left: 0;
+  width: 26px; height: 26px;
   background: var(--color-paper);
-  border-radius: 50%;
+  -webkit-mask: url(/brand/mark.svg) no-repeat center / contain;
+  mask: url(/brand/mark.svg) no-repeat center / contain;
   pointer-events: none;
   z-index: 9999;
-  transition: transform 0.08s ease-out, opacity 0.3s;
+  transition: opacity 0.3s;
   mix-blend-mode: difference;
 }
 
@@ -162,9 +170,17 @@
   0%, 100% { transform: translateY(0) rotate(0deg); }
   50% { transform: translateY(-16px) rotate(0.5deg); }
 }
+@keyframes float-soft-sm {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(0.25deg); }
+}
 @keyframes pulse-soft {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 0.8; }
+}
+@keyframes halo-breathe {
+  0%, 100% { opacity: 0.35; transform: scale(0.97); }
+  50% { opacity: 0.7; transform: scale(1.05); }
 }
 @keyframes scroll-line {
   0% { transform: scaleY(0); transform-origin: top; }
@@ -186,6 +202,15 @@
 }
 @keyframes marquee-scroll {
   to { transform: translateX(-50%); }
+}
+/* Dwell-window meter: travelling light sweep along the bar */
+@keyframes dwell-sweep {
+  0% { transform: translateX(0); }
+  60%, 100% { transform: translateX(400%); }
+}
+.dwell-sweep {
+  left: -33.3333%;
+  animation: dwell-sweep 3.6s cubic-bezier(0.45, 0, 0.2, 1) infinite;
 }
 @keyframes dash-flow {
   to { stroke-dashoffset: -48; }

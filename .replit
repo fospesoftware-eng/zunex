@@ -1,0 +1,19 @@
+# Replit configuration — ZUNEX site (Vite + React + TypeScript)
+# Import this repo into Replit and it will auto-install and run.
+
+modules = ["nodejs-20"]
+
+run = "npm run dev"
+
+entrypoint = "src/main.tsx"
+
+[[ports]]
+localPort = 3100
+externalPort = 80
+
+[deployment]
+deploymentTarget = "static"
+build = ["npm run build"]
+# Replit static deployments fall back to index.html for unknown routes,
+# which keeps react-router (BrowserRouter) working on deep links.
+publicDir = "dist"

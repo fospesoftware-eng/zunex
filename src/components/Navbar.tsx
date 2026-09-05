@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
+import { Link, NavLink } from 'react-router-dom';
 import { Logotype } from './Brand';
 
 const NAV_LINKS = [
-  { label: 'Product', href: '#product' },
-  { label: 'Brand', href: '#brand' },
-  { label: 'Technology', href: '#tech' },
-  { label: 'Business', href: '#business' },
-  { label: 'Contact', href: '#contact' },
+  { label: 'Owner', to: '/owner' },
+  { label: 'Fast Charge', to: '/fast-charge' },
+  { label: 'Advertise', to: '/advertise' },
+  { label: 'Enterprise', to: '/enterprise' },
+  { label: 'ROI', to: '/roi' },
 ];
 
 export default function Navbar() {
@@ -28,32 +29,36 @@ export default function Navbar() {
     >
       <nav className="max-w-container mx-auto px-6 lg:px-8 flex items-center justify-between">
         {/* Logo */}
-        <a href="#top" data-hover className="flex items-center gap-3 text-paper group">
+        <Link to="/" data-hover className="flex items-center gap-3 text-paper group">
           <Logotype className="h-6 opacity-90 group-hover:opacity-100 transition-opacity" />
-        </a>
+        </Link>
 
         {/* Desktop nav */}
-        <div className="hidden lg:flex items-center gap-10">
+        <div className="hidden lg:flex items-center gap-9">
           {NAV_LINKS.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
+            <NavLink
+              key={link.to}
+              to={link.to}
               data-hover
-              className="font-display text-[14px] font-medium text-paper-dim hover:text-paper transition-colors duration-300 tracking-wide"
+              className={({ isActive }) =>
+                `font-display text-[16px] font-medium tracking-wide transition-colors duration-300 ${
+                  isActive ? 'text-paper' : 'text-paper-dim hover:text-paper'
+                }`
+              }
             >
               {link.label}
-            </a>
+            </NavLink>
           ))}
         </div>
 
         {/* CTA */}
-        <a
-          href="#contact"
+        <Link
+          to="/#contact"
           data-hover
           className="hidden lg:inline-flex items-center gap-2 text-[12px] font-semibold text-ink bg-paper px-6 py-2.5 rounded-full hover:bg-steel hover:text-paper transition-all duration-300"
         >
           Get in touch
-        </a>
+        </Link>
 
         {/* Mobile toggle */}
         <button
@@ -72,15 +77,24 @@ export default function Navbar() {
         <div className="lg:hidden absolute top-full left-0 right-0 bg-ink/95 backdrop-blur-2xl hairline-b">
           <div className="px-6 py-8 flex flex-col gap-5">
             {NAV_LINKS.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
+              <NavLink
+                key={link.to}
+                to={link.to}
                 onClick={() => setMobileOpen(false)}
-                className="text-sm font-medium text-paper-soft hover:text-paper transition-colors"
+                className={({ isActive }) =>
+                  `text-base font-medium transition-colors ${isActive ? 'text-paper' : 'text-paper-soft hover:text-paper'}`
+                }
               >
                 {link.label}
-              </a>
+              </NavLink>
             ))}
+            <Link
+              to="/#contact"
+              onClick={() => setMobileOpen(false)}
+              className="mt-2 inline-flex w-fit items-center gap-2 text-[12px] font-semibold text-ink bg-paper px-6 py-2.5 rounded-full"
+            >
+              Get in touch
+            </Link>
           </div>
         </div>
       )}
