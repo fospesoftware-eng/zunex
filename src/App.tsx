@@ -11,6 +11,7 @@ import AdvertisePage from './pages/Advertise';
 import EnterprisePage from './pages/Enterprise';
 import RoiPage from './pages/Roi';
 import ContactPage from './pages/Contact';
+import { HubLoginPage, AdvertiserLoginPage } from './pages/Login';
 import SupportPage from './pages/Support';
 import AccessoriesPage from './pages/Accessories';
 import CompanyPage from './pages/Company';
@@ -1526,8 +1527,8 @@ const FOOTER_COLS: { title: string; links: FootLinkItem[] }[] = [
     links: [
       { label: 'Venue Solutions', href: '/enterprise' },
       { label: 'Installation Network', href: '/enterprise' },
-      { label: 'Advertiser Login', href: '/advertise' },
-      { label: 'Hub Login', href: '/owner' },
+      { label: 'Advertiser Login', href: '/login/advertiser' },
+      { label: 'Hub Login', href: '/login/hub' },
     ],
   },
   {
@@ -1658,6 +1659,8 @@ export default function App() {
         <Route path="/enterprise" element={<EnterprisePage />} />
         <Route path="/roi" element={<RoiPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/login/hub" element={<HubLoginPage />} />
+        <Route path="/login/advertiser" element={<AdvertiserLoginPage />} />
         <Route path="/support" element={<SupportPage />} />
         <Route path="/accessories" element={<AccessoriesPage />} />
         <Route path="/company" element={<CompanyPage />} />
