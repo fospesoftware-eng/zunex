@@ -11,6 +11,16 @@ import AdvertisePage from './pages/Advertise';
 import EnterprisePage from './pages/Enterprise';
 import RoiPage from './pages/Roi';
 import ContactPage from './pages/Contact';
+import SupportPage from './pages/Support';
+import AccessoriesPage from './pages/Accessories';
+import CompanyPage from './pages/Company';
+import TechnologyPartnersPage from './pages/TechnologyPartners';
+import PartnerProgrammesPage from './pages/PartnerProgrammes';
+import SustainabilityPage from './pages/Sustainability';
+import OpenApiPage from './pages/OpenApi';
+import SdkWidgetsPage from './pages/SdkWidgets';
+import ChangelogPage from './pages/Changelog';
+import LegalPage from './pages/Legal';
 
 /* ═══════════════════════════════════════════════════════════
    MAGNETIC LINK
@@ -1227,8 +1237,8 @@ const FOOTER_COLS: { title: string; links: FootLinkItem[] }[] = [
     links: [
       { label: 'Zunex Core', href: '/#product' },
       { label: 'Zunex Plus', href: '/#plus-media' },
-      { label: 'Accessories', href: '/#product' },
-      { label: 'Support', href: '/owner' },
+      { label: 'Accessories', href: '/accessories' },
+      { label: 'Support', href: '/support' },
     ],
   },
   {
@@ -1243,28 +1253,28 @@ const FOOTER_COLS: { title: string; links: FootLinkItem[] }[] = [
   {
     title: 'About',
     links: [
-      { label: 'Company', href: '#' },
-      { label: 'Technology Partners', href: '/enterprise' },
-      { label: 'Partner Programmes', href: '#' },
-      { label: 'Sustainability', href: '/#brand' },
+      { label: 'Company', href: '/company' },
+      { label: 'Technology Partners', href: '/technology-partners' },
+      { label: 'Partner Programmes', href: '/partner-programmes' },
+      { label: 'Sustainability', href: '/sustainability' },
     ],
   },
   {
     title: 'Developers',
     links: [
-      { label: 'Open API', href: '#' },
-      { label: 'SDK & Widgets', href: '#' },
+      { label: 'Open API', href: '/open-api' },
+      { label: 'SDK & Widgets', href: '/sdk-widgets' },
       { label: 'Dashboard', href: '/owner' },
-      { label: 'Changelog', href: '#' },
+      { label: 'Changelog', href: '/changelog' },
     ],
   },
   {
     title: 'Legal & Policies',
     links: [
-      { label: 'Terms · Privacy', href: '#' },
-      { label: 'GDPR / CCPA', href: '#' },
-      { label: 'Warranty · Returns', href: '/owner' },
-      { label: 'Cookie Preferences', href: '#' },
+      { label: 'Terms · Privacy', href: '/legal/terms' },
+      { label: 'GDPR / CCPA', href: '/legal/privacy' },
+      { label: 'Warranty · Returns', href: '/support' },
+      { label: 'Cookie Preferences', href: '/legal/cookies' },
     ],
   },
 ];
@@ -1368,6 +1378,16 @@ export default function App() {
         <Route path="/enterprise" element={<EnterprisePage />} />
         <Route path="/roi" element={<RoiPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/support" element={<SupportPage />} />
+        <Route path="/accessories" element={<AccessoriesPage />} />
+        <Route path="/company" element={<CompanyPage />} />
+        <Route path="/technology-partners" element={<TechnologyPartnersPage />} />
+        <Route path="/partner-programmes" element={<PartnerProgrammesPage />} />
+        <Route path="/sustainability" element={<SustainabilityPage />} />
+        <Route path="/open-api" element={<OpenApiPage />} />
+        <Route path="/sdk-widgets" element={<SdkWidgetsPage />} />
+        <Route path="/changelog" element={<ChangelogPage />} />
+        <Route path="/legal/:topic" element={<LegalPage />} />
         <Route path="*" element={<HomePage />} />
       </Routes>
       <Footer />
