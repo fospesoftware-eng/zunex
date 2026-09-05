@@ -3,19 +3,31 @@ import { Link } from 'react-router-dom';
 import { MeshBG, Reveal } from '../components/Brand';
 
 /* ═══════════════════════════════════════════════════════════
-   ROI — what a ZUNEX fleet earns. Minimal live calculator.
+   ROI — what a ZUNEX fleet earns. Live calculator with a
+   Core / Plus switch. Plus carries a media player, so owners
+   earn extra advertising revenue on top of charging.
    ═══════════════════════════════════════════════════════════ */
-const HARDWARE_COST = 40000; // INR per hub
+type DeviceKey = 'core' | 'plus';
+
+const DEVICES: Record<DeviceKey, { name: string; cost: number; ads: boolean }> = {
+  core: { name: 'Zunex Core', cost: 9000, ads: false },
+  plus: { name: 'Zunex Plus', cost: 19000, ads: true },
+};
 
 export default function RoiPage() {
+  const [device, setDevice] = useState<DeviceKey>('core');
   const [hubs, setHubs] = useState(10);
   const [sessions, setSessions] = useState(40);
-  const [rate, setRate] = useState(20); // revenue per session, INR
+  const [rate, setRate] = useState(20); // charging revenue per session, INR
+  const [adRate, setAdRate] = useState(60); // ad revenue per hub per day, INR (Plus only)
 
-  const monthly = hubs * sessions * rate * 30;
+  const d = DEVICES[device];
+  const perHubDaily = sessions * rate + (d.ads ? adRate : 0);
+  const perHubMonthly = perHubDaily * 30;
+  const monthly = hubs * perHubDaily * 30;
   const yearly = monthly * 12;
-  const perHubMonthly = sessions * rate * 30;
-  const paybackMonths = perHubMonthly > 0 ? HARDWARE_COST / perHubMonthly : Infinity;
+  const paybackMonths = perHubMonthly > 0 ? d.cost / perHubMonthly : Infinity;
+  const adMonthly = d.ads ? hubs * adRate * 30 : 0;
 
   // Indian number units: Cr = crore, L = lakh, k = thousand
   const fmt = (n: number) => {
@@ -29,11 +41,13 @@ export default function RoiPage() {
     { label: 'Hubs deployed', value: hubs, set: setHubs, min: 1, max: 200, step: 1, fmt: (v: number) => `${v}` },
     { label: 'Sessions / hub / day', value: sessions, set: setSessions, min: 5, max: 200, step: 5, fmt: (v: number) => `${v}` },
     { label: 'Revenue per session', value: rate, set: setRate, min: 5, max: 100, step: 5, fmt: (v: number) => `₹${v}` },
+    ...(d.ads ? [{ label: 'Ad revenue / hub / day', value: adRate, set: setAdRate, min: 0, max: 500, step: 10, fmt: (v: number) => `₹${v}` }] : []),
   ];
 
   const results = [
     { label: 'Monthly revenue', value: `₹${fmt(monthly)}` },
     { label: 'Yearly revenue', value: `₹${fmt(yearly)}` },
+    ...(d.ads ? [{ label: 'Advertising share / mo', value: `₹${fmt(adMonthly)}` }] : []),
     { label: 'Payback per hub', value: isFinite(paybackMonths) ? `${paybackMonths.toFixed(1)} mo` : '—' },
   ];
 
@@ -54,7 +68,7 @@ export default function RoiPage() {
           </Reveal>
           <Reveal delay={0.3}>
             <p className="text-lg text-paper-soft font-light leading-relaxed max-w-xl">
-              Charge revenue plus advertising share, per hub, per month. Move the sliders — the fleet pays for itself faster than you think.
+              Pick a device, move the sliders — see what a fleet earns each month.
             </p>
           </Reveal>
         </div>
@@ -68,6 +82,27 @@ export default function RoiPage() {
             {/* Inputs */}
             <Reveal>
               <div className="p-10 rounded-3xl border-gradient hairline bg-ink-card/40 flex flex-col gap-9">
+                {/* Device switch — Core / Plus */}
+                <div>
+                  <div className="flex items-baseline justify-between mb-3">
+                    <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-paper-dim">Device</span>
+                    <span className="font-display text-lg font-bold text-paper">₹{d.cost.toLocaleString('en-IN')} <span className="text-[11px] font-medium text-paper-faint tracking-normal">/ hub</span></span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1 p-1 rounded-full hairline bg-paper/5">
+                    {(Object.keys(DEVICES) as DeviceKey[]).map((k) => (
+                      <button
+                        key={k}
+                        onClick={() => setDevice(k)}
+                        data-hover
+                        className={`py-2.5 rounded-full text-[12px] font-semibold tracking-wide transition-all duration-300 ${
+                          device === k ? 'bg-paper text-ink' : 'text-paper-dim hover:text-paper'
+                        }`}
+                      >
+                        {DEVICES[k].name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 {sliders.map((s) => (
                   <div key={s.label}>
                     <div className="flex items-baseline justify-between mb-3">
@@ -88,7 +123,7 @@ export default function RoiPage() {
                   </div>
                 ))}
                 <p className="text-[11px] text-paper-faint leading-relaxed">
-                  Assumptions: ₹{HARDWARE_COST.toLocaleString('en-IN')} hardware per hub · charging + advertising share combined · excludes venue energy costs.
+                  Assumptions: ₹{d.cost.toLocaleString('en-IN')} hardware per hub · charging{d.ads ? ' + advertising share from the hub\'s media player' : ''} · excludes venue energy costs.
                 </p>
               </div>
             </Reveal>
