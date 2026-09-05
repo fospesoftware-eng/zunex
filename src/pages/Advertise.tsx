@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { MeshBG, Reveal, RevealWords, Counter } from '../components/Brand';
+import { MeshBG, Reveal, Counter } from '../components/Brand';
 
 /* ═══════════════════════════════════════════════════════════
    ADVERTISE — the ZUNEX screen network for brands.
@@ -29,10 +29,12 @@ export default function AdvertisePage() {
           <Reveal>
             <div className="text-[11px] font-semibold text-steel-bright tracking-[0.25em] uppercase mb-6">Advertise</div>
           </Reveal>
-          <RevealWords
-            text="Your brand, on every charge."
-            className="font-display text-[clamp(2.4rem,6vw,5rem)] font-bold leading-[1.05] tracking-[-0.03em] text-gradient-lux max-w-3xl mb-8"
-          />
+          {/* Plain Reveal — background-clip:text breaks on RevealWords' nested spans (renders invisible) */}
+          <Reveal delay={0.1}>
+            <h2 className="font-display text-[clamp(2.4rem,6vw,5rem)] font-bold leading-[1.05] tracking-[-0.03em] text-gradient-lux max-w-3xl mb-8">
+              Your brand, on every charge.
+            </h2>
+          </Reveal>
           <Reveal delay={0.3}>
             <p className="text-lg text-paper-soft font-light leading-relaxed max-w-xl mb-10">
               The ZUNEX network turns charging time into attention time. Premium screens in premium venues, playing your campaign to a captive, phone-in-hand audience.

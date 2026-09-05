@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { MeshBG, Reveal, RevealWords, Counter } from '../components/Brand';
+import { MeshBG, Reveal, Counter } from '../components/Brand';
 
 /* ═══════════════════════════════════════════════════════════
    OWNER — everything a ZUNEX owner needs in one place.
@@ -29,10 +29,12 @@ export default function OwnerPage() {
           <Reveal>
             <div className="text-[11px] font-semibold text-steel-bright tracking-[0.25em] uppercase mb-6">Owner</div>
           </Reveal>
-          <RevealWords
-            text="Your ZUNEX, fully in hand."
-            className="font-display text-[clamp(2.4rem,6vw,5rem)] font-bold leading-[1.05] tracking-[-0.03em] text-gradient-lux max-w-3xl mb-8"
-          />
+          {/* Plain Reveal — background-clip:text breaks on RevealWords' nested spans (renders invisible) */}
+          <Reveal delay={0.1}>
+            <h2 className="font-display text-[clamp(2.4rem,6vw,5rem)] font-bold leading-[1.05] tracking-[-0.03em] text-gradient-lux max-w-3xl mb-8">
+              Your ZUNEX, fully in hand.
+            </h2>
+          </Reveal>
           <Reveal delay={0.3}>
             <p className="text-lg text-paper-soft font-light leading-relaxed max-w-xl mb-10">
               Setup, live status, updates and warranty — one place for everything your devices do. Built for people who own a ZUNEX, not just buy one.

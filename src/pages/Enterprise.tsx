@@ -31,10 +31,12 @@ export default function EnterprisePage() {
           <Reveal>
             <div className="text-[11px] font-semibold text-steel-bright tracking-[0.25em] uppercase mb-6">Enterprise</div>
           </Reveal>
-          <RevealWords
-            text="ZUNEX at venue scale."
-            className="font-display text-[clamp(2.4rem,6vw,5rem)] font-bold leading-[1.05] tracking-[-0.03em] text-gradient-lux max-w-3xl mb-8"
-          />
+          {/* Plain Reveal — background-clip:text breaks on RevealWords' nested spans (renders invisible) */}
+          <Reveal delay={0.1}>
+            <h2 className="font-display text-[clamp(2.4rem,6vw,5rem)] font-bold leading-[1.05] tracking-[-0.03em] text-gradient-lux max-w-3xl mb-8">
+              ZUNEX at venue scale.
+            </h2>
+          </Reveal>
           <Reveal delay={0.3}>
             <p className="text-lg text-paper-soft font-light leading-relaxed max-w-xl mb-10">
               Deploy charging as infrastructure. Managed fleets, certified installation and an open platform — built for operators, not just early adopters.

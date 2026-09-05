@@ -1,34 +1,39 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MeshBG, Reveal, RevealWords } from '../components/Brand';
+import { MeshBG, Reveal } from '../components/Brand';
 
 /* ═══════════════════════════════════════════════════════════
    ROI — what a ZUNEX fleet earns. Minimal live calculator.
    ═══════════════════════════════════════════════════════════ */
-const HARDWARE_COST = 499; // USD per hub
+const HARDWARE_COST = 40000; // INR per hub
 
 export default function RoiPage() {
   const [hubs, setHubs] = useState(10);
   const [sessions, setSessions] = useState(40);
-  const [rate, setRate] = useState(2); // revenue per session, USD
+  const [rate, setRate] = useState(20); // revenue per session, INR
 
   const monthly = hubs * sessions * rate * 30;
   const yearly = monthly * 12;
   const perHubMonthly = sessions * rate * 30;
   const paybackMonths = perHubMonthly > 0 ? HARDWARE_COST / perHubMonthly : Infinity;
 
-  const fmt = (n: number) =>
-    n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : Math.round(n).toString();
+  // Indian number units: Cr = crore, L = lakh, k = thousand
+  const fmt = (n: number) => {
+    if (n >= 10000000) return `${(n / 10000000).toFixed(n >= 100000000 ? 0 : 1)}Cr`;
+    if (n >= 100000) return `${(n / 100000).toFixed(n >= 1000000 ? 0 : 1)}L`;
+    if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
+    return Math.round(n).toString();
+  };
 
   const sliders = [
     { label: 'Hubs deployed', value: hubs, set: setHubs, min: 1, max: 200, step: 1, fmt: (v: number) => `${v}` },
     { label: 'Sessions / hub / day', value: sessions, set: setSessions, min: 5, max: 200, step: 5, fmt: (v: number) => `${v}` },
-    { label: 'Revenue per session', value: rate, set: setRate, min: 0.5, max: 5, step: 0.5, fmt: (v: number) => `$${v.toFixed(2)}` },
+    { label: 'Revenue per session', value: rate, set: setRate, min: 5, max: 100, step: 5, fmt: (v: number) => `₹${v}` },
   ];
 
   const results = [
-    { label: 'Monthly revenue', value: `$${fmt(monthly)}` },
-    { label: 'Yearly revenue', value: `$${fmt(yearly)}` },
+    { label: 'Monthly revenue', value: `₹${fmt(monthly)}` },
+    { label: 'Yearly revenue', value: `₹${fmt(yearly)}` },
     { label: 'Payback per hub', value: isFinite(paybackMonths) ? `${paybackMonths.toFixed(1)} mo` : '—' },
   ];
 
@@ -41,10 +46,12 @@ export default function RoiPage() {
           <Reveal>
             <div className="text-[11px] font-semibold text-steel-bright tracking-[0.25em] uppercase mb-6">ROI</div>
           </Reveal>
-          <RevealWords
-            text="The math, beyond the expected."
-            className="font-display text-[clamp(2.4rem,6vw,5rem)] font-bold leading-[1.05] tracking-[-0.03em] text-gradient-lux max-w-3xl mb-8"
-          />
+          {/* Plain Reveal — background-clip:text breaks on RevealWords' nested spans (renders invisible) */}
+          <Reveal delay={0.1}>
+            <h2 className="font-display text-[clamp(2.4rem,6vw,5rem)] font-bold leading-[1.05] tracking-[-0.03em] text-gradient-lux max-w-3xl mb-8">
+              The math, beyond the expected.
+            </h2>
+          </Reveal>
           <Reveal delay={0.3}>
             <p className="text-lg text-paper-soft font-light leading-relaxed max-w-xl">
               Charge revenue plus advertising share, per hub, per month. Move the sliders — the fleet pays for itself faster than you think.
@@ -81,7 +88,7 @@ export default function RoiPage() {
                   </div>
                 ))}
                 <p className="text-[11px] text-paper-faint leading-relaxed">
-                  Assumptions: ${HARDWARE_COST} hardware per hub · charging + advertising share combined · excludes venue energy costs.
+                  Assumptions: ₹{HARDWARE_COST.toLocaleString('en-IN')} hardware per hub · charging + advertising share combined · excludes venue energy costs.
                 </p>
               </div>
             </Reveal>

@@ -103,6 +103,7 @@
     inset: 0;
     border-radius: inherit;
     padding: 1px;
+    pointer-events: none; /* decorative layer must not intercept clicks (sliders/buttons inside cards) */
     background: linear-gradient(
       135deg,
       rgba(156, 163, 175, 0) 0%,
