@@ -1209,7 +1209,7 @@ function Technology() {
 
 /* ═══════════════════════════════════════════════════════════
    FOOTER — carries the #contact anchor (Contact links land here).
-   Four link columns: Product / Ecosystem / Developers / Legal.
+   Five link columns: Product / Ecosystem / About / Developers / Legal.
    ═══════════════════════════════════════════════════════════ */
 type FootLinkItem = { label: string; href: string } | { divider: true };
 
@@ -1226,12 +1226,19 @@ const FOOTER_COLS: { title: string; links: FootLinkItem[] }[] = [
   {
     title: 'Ecosystem',
     links: [
-      { label: 'Technology Partners', href: '/enterprise' },
-      { label: 'Sustainability', href: '/#brand' },
-      { divider: true },
       { label: 'Venue Solutions', href: '/enterprise' },
       { label: 'Installation Network', href: '/enterprise' },
-      { label: 'Content Program', href: '/advertise' },
+      { label: 'Advertiser Login', href: '/advertise' },
+      { label: 'Hub Login', href: '/owner' },
+    ],
+  },
+  {
+    title: 'About',
+    links: [
+      { label: 'Company', href: '#' },
+      { label: 'Technology Partners', href: '/enterprise' },
+      { label: 'Partner Programmes', href: '#' },
+      { label: 'Sustainability', href: '/#brand' },
     ],
   },
   {
@@ -1240,7 +1247,7 @@ const FOOTER_COLS: { title: string; links: FootLinkItem[] }[] = [
       { label: 'Open API', href: '#' },
       { label: 'SDK & Widgets', href: '#' },
       { label: 'Dashboard', href: '/owner' },
-      { label: 'Status · Changelog · GitHub', href: '#' },
+      { label: 'Changelog', href: '#' },
     ],
   },
   {
@@ -1279,8 +1286,8 @@ function Footer() {
             <div className="text-[12px] text-paper-faint mt-8">© 2026 ZUNEX. All rights reserved.</div>
           </div>
 
-          {/* Four link columns */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          {/* Five link columns */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
             {FOOTER_COLS.map((col) => (
               <div key={col.title}>
                 <div className="text-[10px] font-semibold tracking-[0.25em] uppercase text-paper-faint mb-5">{col.title}</div>
