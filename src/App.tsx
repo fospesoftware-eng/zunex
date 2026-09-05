@@ -336,7 +336,7 @@ function PlusMediaHero() {
   };
 
   return (
-    <section id="plus-media" className="relative min-h-[92svh] flex flex-col justify-center py-16 lg:py-20 overflow-hidden noise-bg">
+    <section id="plus-media" className="relative min-h-[92svh] flex flex-col justify-center py-16 lg:py-24 overflow-hidden noise-bg">
       <MeshBG variant="steel" />
 
       {/* tiny header label */}
@@ -1150,7 +1150,7 @@ function Technology() {
     { img: '/products/brandplate.jpg', title: 'Front plate', desc: 'Anodised and serialised for fleet management.' },
   ];
   return (
-    <section id="tech" className="relative py-32 lg:py-48 noise-bg overflow-hidden">
+    <section id="tech" className="relative py-16 lg:py-24 noise-bg overflow-hidden">
       <MeshBG variant="dark" />
       <div className="relative max-w-container mx-auto px-6 lg:px-8">
         <Reveal>

@@ -27,7 +27,7 @@ function FastCharge() {
   };
 
   return (
-    <section className="relative min-h-[92svh] flex flex-col justify-center py-16 lg:py-20 overflow-hidden noise-bg">
+    <section className="relative min-h-[92svh] flex flex-col justify-center py-16 lg:py-24 overflow-hidden noise-bg">
       <MeshBG variant="steel" />
 
       {/* tiny header label */}
