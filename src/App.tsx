@@ -336,7 +336,7 @@ function PlusMediaHero() {
   };
 
   return (
-    <section id="plus-media" className="relative min-h-[92svh] flex flex-col justify-center py-16 lg:py-24 overflow-hidden noise-bg">
+    <section id="plus-media" className="relative flex flex-col justify-center py-16 lg:py-24 overflow-hidden noise-bg">
       <MeshBG variant="steel" />
 
       {/* tiny header label */}
@@ -787,7 +787,7 @@ function ProductShowcase() {
   return (
     <section id="product" className="relative noise-bg">
       <MeshBG variant="dark" />
-      <div className="max-w-container mx-auto px-6 lg:px-8 py-28 lg:py-40">
+      <div className="max-w-container mx-auto px-6 lg:px-8 py-16 lg:py-24">
         {/* header */}
         <div className="text-center mb-16 lg:mb-24">
           <Reveal>
@@ -939,7 +939,7 @@ function useScrollProgressOnView() {
    ═══════════════════════════════════════════════════════════ */
 function BrandStory() {
   return (
-    <section id="brand" className="relative py-32 lg:py-48 noise-bg overflow-hidden bg-ink-elevated">
+    <section id="brand" className="relative py-16 lg:py-24 noise-bg overflow-hidden bg-ink-elevated">
       <MeshBG variant="dark" />
       <div className="relative max-w-container mx-auto px-6 lg:px-8">
         {/* Section label */}
