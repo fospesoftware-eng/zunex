@@ -15,6 +15,9 @@ function FastCharge() {
   const charged = phase === 'charged';
   const fillH = (pct * 1.02).toFixed(1);
   const cablePath = 'M 546 378 C 750 378, 850 468, 975 480 C 1080 489, 1170 490, 1235 478';
+  /* Mobile vertical scene: hub on top, iPhone below — short cable dropping
+     down the right edge and plugging up into the iPhone's bottom USB-C port */
+  const cablePathM = 'M 320 172 C 372 178, 388 220, 388 300 L 388 470 C 388 556, 336 622, 199 610';
   const sceneRef = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
@@ -37,12 +40,12 @@ function FastCharge() {
         </Reveal>
       </div>
 
-      {/* full-width 3D scene — swipeable on small screens so the hub stays readable */}
-      <div className="overflow-x-auto no-scrollbar">
+      {/* ═══ desktop scene (md+) — horizontal hub → iPhone composition ═══ */}
+      <div className="hidden md:block">
       <Reveal delay={0.15}>
         <div
           ref={sceneRef}
-          className="relative w-full max-w-[1500px] mx-auto px-4 min-w-[700px] md:min-w-0"
+          className="relative w-full max-w-[1500px] mx-auto px-4"
           style={{ perspective: '1600px' }}
           onMouseMove={onTilt}
           onMouseLeave={() => setTilt({ x: 0, y: 0 })}
@@ -313,9 +316,243 @@ function FastCharge() {
         </div>
       </Reveal>
       </div>
-      {/* swipe hint — small screens only */}
-      <div className="mt-4 flex justify-center md:hidden">
-        <span className="text-[9px] font-semibold tracking-[0.3em] uppercase text-paper-faint">Swipe to explore</span>
+
+      {/* ═══ mobile scene (<md) — vertical, touch-first: device on top, iPhone
+          underneath, short cable. No swiping — the whole scene fits the screen
+          and charges with a thumb-tap on the QR. ═══ */}
+      <div className="md:hidden">
+      <Reveal delay={0.15}>
+        <div className="relative w-full max-w-[430px] mx-auto px-3">
+          {/* background text */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none overflow-hidden" aria-hidden="true">
+            <span className="font-display font-bold whitespace-nowrap leading-[0.94]"
+              style={{
+                fontSize: 'clamp(52px, 18vw, 88px)',
+                letterSpacing: '-0.03em',
+                color: 'transparent',
+                backgroundImage: 'linear-gradient(180deg, rgba(244,243,239,0.13) 0%, rgba(244,243,239,0.045) 78%, rgba(244,243,239,0.02) 100%)',
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+              }}>
+              TAP · CHARGE
+            </span>
+            <span className="font-display font-bold whitespace-nowrap leading-[0.94]"
+              style={{
+                fontSize: 'clamp(52px, 18vw, 88px)',
+                letterSpacing: '-0.03em',
+                color: 'transparent',
+                backgroundImage: 'linear-gradient(180deg, rgba(244,243,239,0.11) 0%, rgba(244,243,239,0.04) 78%, rgba(244,243,239,0.015) 100%)',
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+              }}>
+              BEYOND
+            </span>
+          </div>
+
+          {/* editorial corner marks */}
+          <span className="absolute top-2 left-4 text-paper/25 text-base font-thin select-none pointer-events-none">+</span>
+          <span className="absolute top-2 right-4 text-paper/25 text-base font-thin select-none pointer-events-none">+</span>
+          <span className="absolute bottom-2 left-4 text-paper/25 text-base font-thin select-none pointer-events-none">+</span>
+          <span className="absolute bottom-2 right-4 text-paper/25 text-base font-thin select-none pointer-events-none">+</span>
+
+          <svg viewBox="0 0 400 660" className="w-full h-auto" fill="none" role="img" aria-label="ZUNEX hub fast charging an iPhone 17 — tap the QR code to start">
+            <defs>
+              <radialGradient id="portGlowM">
+                <stop offset="0%" stopColor="#C5C9D0" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#6B7280" stopOpacity="0" />
+              </radialGradient>
+              <radialGradient id="packetGlowM">
+                <stop offset="0%" stopColor="#C5C9D0" stopOpacity="0.45" />
+                <stop offset="100%" stopColor="#6B7280" stopOpacity="0" />
+              </radialGradient>
+              <radialGradient id="groundGlowM">
+                <stop offset="0%" stopColor="#6B7280" stopOpacity="0.22" />
+                <stop offset="100%" stopColor="#6B7280" stopOpacity="0" />
+              </radialGradient>
+              <linearGradient id="glintGradM" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0" />
+                <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+              </linearGradient>
+              <clipPath id="hubClipM">
+                <rect x="150" y="280" width="320" height="173" rx="14" />
+              </clipPath>
+              <linearGradient id="fillGradM" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0%" stopColor="#4B5563" />
+                <stop offset="100%" stopColor="#C5C9D0" />
+              </linearGradient>
+              <linearGradient id="screenGradM" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#15151A" />
+                <stop offset="100%" stopColor="#0A0A0E" />
+              </linearGradient>
+              <linearGradient id="phoneBodyM" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#87878E" />
+                <stop offset="50%" stopColor="#55555C" />
+                <stop offset="100%" stopColor="#3E3E45" />
+              </linearGradient>
+              <filter id="softBlurM" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="9" />
+              </filter>
+              <filter id="hubShadowM" x="-30%" y="-30%" width="160%" height="160%">
+                <feDropShadow dx="0" dy="12" stdDeviation="14" floodColor="#000000" floodOpacity="0.55" />
+              </filter>
+              <filter id="reflBlurM" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="2.5" />
+              </filter>
+              <linearGradient id="floorLineM" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#6B7280" stopOpacity="0" />
+                <stop offset="50%" stopColor="#6B7280" stopOpacity="0.32" />
+                <stop offset="100%" stopColor="#6B7280" stopOpacity="0" />
+              </linearGradient>
+              <linearGradient id="reflGradM" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+              </linearGradient>
+              <mask id="reflFadeM">
+                <rect x="150" y="453" width="320" height="90" fill="url(#reflGradM)" />
+              </mask>
+            </defs>
+
+            {/* studio floor line + ambient glow */}
+            <line x1="16" y1="612" x2="384" y2="612" stroke="url(#floorLineM)" strokeWidth="1" />
+            <ellipse cx="200" cy="598" rx="185" ry="26" fill="url(#groundGlowM)"
+              style={{ opacity: charging ? 1 : 0.35, transition: 'opacity 0.8s ease' }} />
+
+            {/* short cable — connection hidden behind the hub photo */}
+            <path d={cablePathM} stroke="#1C1C21" strokeWidth="6.5" strokeLinecap="round" />
+            <path d={cablePathM} stroke="#38383F" strokeWidth="2" strokeLinecap="round" opacity="0.55" />
+
+            {charging && (
+              <>
+                {[0, 1.2].map((begin) => (
+                  <g key={begin}>
+                    <circle r="5" fill="url(#packetGlowM)">
+                      <animateMotion dur="2.4s" begin={`${begin}s`} repeatCount="indefinite" path={cablePathM} />
+                    </circle>
+                    <g opacity="0.8">
+                      <animateMotion dur="2.4s" begin={`${begin}s`} repeatCount="indefinite" path={cablePathM} rotate="auto" />
+                      <path d="M -3.5 -3 L 4 0 L -3.5 3 L -1.5 0 Z" fill="#AEB2BA" />
+                    </g>
+                  </g>
+                ))}
+                <g opacity="0.9" style={{ animation: 'fade-in-soft 0.4s ease-out both' }}>
+                  <rect x="365" y="384.5" width="46" height="21" rx="10.5" fill="#101014" stroke="#2E2E34" strokeWidth="1" />
+                  <text x="388" y="398.5" textAnchor="middle" fontFamily="Space Grotesk, sans-serif" fontWeight="700" fontSize="9.5" letterSpacing="1" fill="#AEB2BA">65W</text>
+                </g>
+              </>
+            )}
+
+            {/* ═══ ZUNEX ONE — top ═══ */}
+            <g style={{ animation: 'float-soft 7s ease-in-out infinite' }}>
+             <g transform="translate(200,148) scale(1) translate(-310,-366.5)">
+              <ellipse cx="310" cy="458" rx="175" ry="11" fill="#000" opacity="0.5" filter="url(#softBlurM)" />
+              <g>
+                <image href="/products/hub-cutout.png?v=2" x="150" y="280" width="320" height="173" filter="url(#hubShadowM)" />
+                <g clipPath="url(#hubClipM)">
+                  <rect x="130" y="275" width="46" height="183" fill="url(#glintGradM)"
+                    style={{ animation: 'glint-sweep 5.5s ease-in-out infinite' }} />
+                </g>
+              </g>
+              <image href="/products/hub-cutout.png?v=2" x="150" y="280" width="320" height="173"
+                transform="translate(0,906) scale(1,-1)" mask="url(#reflFadeM)" opacity="0.16" filter="url(#reflBlurM)" />
+
+              {charging && (
+                <g stroke="#8E929B" fill="none" strokeWidth="1.2">
+                  {[0, 1.1].map((d) => (
+                    <circle key={d} cx="236" cy="365" r="28"
+                      style={{ animation: `hub-ripple 2.2s ease-out ${d}s infinite`, transformBox: 'fill-box', transformOrigin: 'center' }} />
+                  ))}
+                </g>
+              )}
+
+              {/* QR tap target — enlarged invisible hit area for thumbs */}
+              <g
+                onClick={start}
+                style={{ cursor: charging ? 'default' : 'pointer' }}
+                role="button"
+                aria-label="Tap the QR code to start charging"
+              >
+                {phase === 'idle' && (
+                  <>
+                    <rect x="324" y="396" width="36" height="36" rx="6" fill="none" stroke="#9CA3AF" strokeWidth="1"
+                      style={{ animation: 'qr-ping 1.6s ease-out infinite', transformBox: 'fill-box', transformOrigin: 'center' }} />
+                    <text x="342" y="468" textAnchor="middle" fontFamily="Inter, sans-serif" fontWeight="600" fontSize="10" letterSpacing="2.5" fill="#6E6E76" style={{ animation: 'pulse-soft 1.6s ease-in-out infinite' }}>
+                      TAP QR TO CHARGE
+                    </text>
+                  </>
+                )}
+                <rect x="329" y="401" width="27" height="27" rx="4" fill="#F4F3EF" opacity={charging ? 0.16 : 0.08} />
+                <rect x="308" y="380" width="68" height="68" rx="10" fill="transparent" />
+              </g>
+             </g>
+            </g>
+
+            {/* ═══ iPhone 17 — underneath ═══ */}
+            <g style={{ animation: 'float-soft 7s ease-in-out -3.5s infinite' }}>
+             <g transform="translate(200,455) scale(0.9) translate(-1237.5,-250.5)">
+              <ellipse cx="1237" cy="432" rx="90" ry="12" fill="#000" opacity="0.5" filter="url(#softBlurM)" />
+              <rect x="1160" y="96" width="155" height="325" rx="28" fill="#1F1F24" />
+              <rect x="1156" y="118" width="4" height="24" rx="2" fill="#3C3C43" />
+              <rect x="1156" y="152" width="4" height="36" rx="2" fill="#3C3C43" />
+              <rect x="1156" y="196" width="4" height="36" rx="2" fill="#3C3C43" />
+              <rect x="1315" y="146" width="4" height="58" rx="2" fill="#3C3C43" />
+              <rect x="1160" y="88" width="155" height="325" rx="28" fill="url(#phoneBodyM)" />
+              <rect x="1163" y="91" width="149" height="319" rx="25" fill="#050507" />
+              <rect x="1168" y="96" width="139" height="309" rx="20" fill="url(#screenGradM)" stroke="#4A4A52" strokeWidth="1.25" />
+              <rect x="1171" y="99" width="133" height="303" rx="17" fill="none" stroke="#2A2A31" strokeWidth="0.75" />
+              <rect x="1214" y="108" width="47" height="14.5" rx="7.25" fill="#020203" />
+
+              {phase === 'idle' && (
+                <g opacity="0.55">
+                  <g transform="translate(1216,186) scale(0.081)" fill="#3C3C43">
+                    {MARK_PATHS.map((d, i) => <path key={i} d={d} />)}
+                  </g>
+                </g>
+              )}
+
+              {charging && (
+                <g style={{ animation: 'fade-in-soft 0.3s ease-out both' }}>
+                  <rect x="1228" y="144" width="18" height="6" rx="2.5" fill="#B9BDC4" />
+                  <rect x="1204" y="150" width="66" height="110" rx="12" stroke="#B9BDC4" strokeWidth="2.5" fill="none" />
+                  <rect x="1209" y={256 - Number(fillH)} width="56" height={fillH} rx="6" fill="url(#fillGradM)" style={{ transition: 'height 0.12s linear, y 0.12s linear' }} />
+                  <g style={{ animation: 'pulse-soft 1.4s ease-in-out infinite' }}>
+                    <path d="M1243 178 L1228 208 h8.5 l-4.5 24 15-28 h-8.5 l7-26 Z" fill="#F4F3EF" opacity="0.95" />
+                  </g>
+                  <text x="1237" y="298" textAnchor="middle" fontFamily="Space Grotesk, sans-serif" fontWeight="700" fontSize="34" fill="#F4F3EF">{pct}%</text>
+                  <text x="1237" y="320" textAnchor="middle" fontFamily="Inter, sans-serif" fontWeight="600" fontSize="8.5" letterSpacing="2.5" fill="#C5C9D0">FAST CHARGING</text>
+                  <g opacity="0.75">
+                    {[0, 1, 2].map((i) => (
+                      <rect key={i} x={1216 + i * 15} y="338" width="9" height="4" rx="2" fill="#9CA3AF"
+                        style={{ animation: `pulse-soft 1.2s ease-in-out ${i * 0.2}s infinite` }} />
+                    ))}
+                  </g>
+                </g>
+              )}
+
+              {charged && (
+                <g style={{ animation: 'fade-in-soft 0.35s ease-out both' }}>
+                  <rect x="1168" y="96" width="139" height="309" rx="20" fill="#F4F3EF" style={{ animation: 'screen-flash 0.9s ease-out forwards' }} />
+                  {[0, 0.25].map((d) => (
+                    <circle key={d} cx="1237" cy="205" r="56" stroke="#9CA3AF" strokeWidth="1.5" fill="none"
+                      style={{ animation: `ring-burst 1s ease-out ${d}s forwards`, transformBox: 'fill-box', transformOrigin: 'center' }} />
+                  ))}
+                  <g transform="translate(1165,137) scale(0.28)" fill="#B9BDC4" opacity="0.95">
+                    {MARK_PATHS.map((d, i) => <path key={i} d={d} />)}
+                  </g>
+                  <text x="1237" y="296" textAnchor="middle" fontFamily="Space Grotesk, sans-serif" fontWeight="700" fontSize="26" fill="#F4F3EF">100%</text>
+                  <text x="1237" y="318" textAnchor="middle" fontFamily="Inter, sans-serif" fontWeight="600" fontSize="8.5" letterSpacing="2.5" fill="#C5C9D0">FULLY CHARGED</text>
+                </g>
+              )}
+
+              {charging && (
+                <circle cx="1237" cy="414" r="18" fill="url(#portGlowM)" style={{ animation: 'port-glow 1.6s ease-in-out infinite', transformOrigin: '1237px 414px' }} />
+              )}
+              <rect x="1226" y="410" width="22" height="7" rx="3.5" stroke="#6E6E76" strokeWidth="1.5" fill="#0D0D10" />
+             </g>
+            </g>
+          </svg>
+        </div>
+      </Reveal>
       </div>
     </section>
   );

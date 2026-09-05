@@ -267,6 +267,8 @@ function Marquee() {
  *  computed in live CSS px (matrix3d values are px, not percentages). */
 const PLUS_GLASS_QUAD_PX = [[95, 305], [1095, 55], [1475, 375], [345, 685]] as const;
 const PLUS_IMG_RECT = { x: 70, y: 118, w: 560, h: 354, assetW: 1700, assetH: 1073 };
+/* Mobile vertical scene: same photo, uniformly scaled 0.2 into the 400×660 viewBox */
+const PLUS_IMG_RECT_M = { x: 30, y: 40, w: 340, h: 214.6, assetW: 1700, assetH: 1073 };
 
 function solveHomography(src: number[][], dst: number[][]): string {
   const rows: number[][] = [];
@@ -297,8 +299,12 @@ function solveHomography(src: number[][], dst: number[][]): string {
   return `matrix3d(${f3(H[0])},${f3(H[3])},0,${f3(H[6])},${f3(H[1])},${f3(H[4])},0,${f3(H[7])},0,0,1,0,${f3(H[2])},${f3(H[5])},0,${H[8]})`;
 }
 
-/** Measures the live scene and builds the px-based matrix3d for the screen overlay. */
-function usePlusScreenMatrix() {
+/** Measures the live scene and builds the px-based matrix3d for the screen overlay.
+ *  Parameterised per breakpoint: rect = photo placement in SVG units, vbW/vbH/vbY = viewBox. */
+function usePlusScreenMatrix(
+  rect: { x: number; y: number; w: number; h: number; assetW: number; assetH: number },
+  vbW: number, vbH: number, vbY: number,
+) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [matrix, setMatrix] = useState('');
@@ -308,12 +314,12 @@ function usePlusScreenMatrix() {
       if (!wrap || !svg) return;
       const wr = wrap.getBoundingClientRect();
       const sr = svg.getBoundingClientRect();
+      if (!sr.width || !sr.height) return; // scene hidden (other breakpoint active)
       const ox = sr.left - wr.left, oy = sr.top - wr.top;
-      const { x, y, w, h, assetW, assetH } = PLUS_IMG_RECT;
-      const sx = w / assetW, sy = h / assetH;
+      const sx = rect.w / rect.assetW, sy = rect.h / rect.assetH;
       const dst = PLUS_GLASS_QUAD_PX.map(([qx, qy]) => [
-        ox + (x + qx * sx) / 1480 * sr.width,
-        oy + (y + qy * sy - 60) / 450 * sr.height,
+        ox + (rect.x + qx * sx) / vbW * sr.width,
+        oy + (rect.y + qy * sy - vbY) / vbH * sr.height,
       ]);
       setMatrix(solveHomography([[0, 0], [1000, 0], [1000, 620], [0, 620]], dst));
     };
@@ -329,12 +335,17 @@ function usePlusScreenMatrix() {
 function PlusMediaHero() {
   /* 150ms/step → ~15s charging: enough for the embedded video to load and play */
   const { phase, pct, start } = useChargeCycle(150);
-  const { wrapRef, svgRef, matrix } = usePlusScreenMatrix();
+  /* one overlay matrix per breakpoint — desktop (1480×450) and mobile (400×660) */
+  const desk = usePlusScreenMatrix(PLUS_IMG_RECT, 1480, 450, 60);
+  const mob = usePlusScreenMatrix(PLUS_IMG_RECT_M, 400, 660, 0);
   const charging = phase === 'charging';
   const charged = phase === 'charged';
   const fillH = (pct * 1.02).toFixed(1);
   /* Cable starts tucked inside the plug boot (x≈428) and ends hidden behind the iPhone body */
   const cablePath = 'M 428 426.6 C 630 450, 860 468, 985 478 C 1090 488, 1175 486, 1235 462';
+  /* Mobile vertical scene: plug boot on the right of the PLUS, short drop down the
+     right edge, plugging up into the iPhone's bottom USB-C port */
+  const cablePathM = 'M 250 228 C 330 232, 388 252, 388 320 L 388 470 C 388 556, 336 622, 199 610';
   const sceneRef = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
@@ -357,12 +368,12 @@ function PlusMediaHero() {
         </Reveal>
       </div>
 
-      {/* swipeable on small screens — keeps hub + LCD video readable */}
-      <div className="overflow-x-auto no-scrollbar">
+      {/* ═══ desktop scene (md+) — horizontal composition ═══ */}
+      <div className="hidden md:block">
       <Reveal delay={0.15}>
         <div
           ref={sceneRef}
-          className="relative w-full max-w-[1500px] mx-auto px-4 min-w-[700px] md:min-w-0"
+          className="relative w-full max-w-[1500px] mx-auto px-4"
           style={{ perspective: '1600px' }}
           onMouseMove={onTilt}
           onMouseLeave={() => setTilt({ x: 0, y: 0 })}
@@ -406,7 +417,7 @@ function PlusMediaHero() {
           </div>
 
           <div className="relative" style={{ transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`, transformStyle: 'preserve-3d', transition: 'transform 0.25s ease-out' }}>
-            <svg ref={svgRef} viewBox="0 60 1480 450" className="w-full h-auto" fill="none" role="img" aria-label="ZUNEX PLUS fast charging an iPhone 17 — tap the QR code to start">
+            <svg ref={desk.svgRef} viewBox="0 60 1480 450" className="w-full h-auto" fill="none" role="img" aria-label="ZUNEX PLUS fast charging an iPhone 17 — tap the QR code to start">
               <defs>
                 <radialGradient id="pmPortGlow">
                   <stop offset="0%" stopColor="#C5C9D0" stopOpacity="0.9" />
@@ -622,15 +633,15 @@ function PlusMediaHero() {
 
             {/* ═══ LIVE SCREEN overlay — perspective-mapped onto the PLUS display.
                 Always in play mode: video only, from page load, no text. ═══ */}
-            <div ref={wrapRef} className="absolute inset-0" style={{ pointerEvents: 'none' }}>
+            <div ref={desk.wrapRef} className="absolute inset-0" style={{ pointerEvents: 'none' }}>
               <div
                 className="absolute left-0 top-0"
                 style={{
                   width: 1000,
                   height: 620,
                   transformOrigin: '0 0',
-                  transform: matrix,
-                  opacity: matrix ? 1 : 0,
+                  transform: desk.matrix,
+                  opacity: desk.matrix ? 1 : 0,
                   pointerEvents: 'none',
                 }}
               >
@@ -659,9 +670,278 @@ function PlusMediaHero() {
         </div>
       </Reveal>
       </div>
-      {/* swipe hint — small screens only */}
-      <div className="mt-4 flex justify-center md:hidden">
-        <span className="text-[9px] font-semibold tracking-[0.3em] uppercase text-paper-faint">Swipe to explore</span>
+
+      {/* ═══ mobile scene (<md) — vertical, touch-first: PLUS on top, iPhone
+          underneath, short cable. The whole scene fits the screen and charges
+          with a thumb-tap on the QR. ═══ */}
+      <div className="md:hidden">
+      <Reveal delay={0.15}>
+        <div className="relative w-full max-w-[430px] mx-auto px-3">
+          {/* giant background text */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none overflow-hidden" aria-hidden="true">
+            <span className="font-display font-bold whitespace-nowrap leading-[0.94]"
+              style={{
+                fontSize: 'clamp(52px, 18vw, 88px)',
+                letterSpacing: '-0.03em',
+                color: 'transparent',
+                backgroundImage: 'linear-gradient(180deg, rgba(244,243,239,0.13) 0%, rgba(244,243,239,0.045) 78%, rgba(244,243,239,0.02) 100%)',
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+              }}>
+              PLUG IN.
+            </span>
+            <span className="font-display font-bold whitespace-nowrap leading-[0.94]"
+              style={{
+                fontSize: 'clamp(52px, 18vw, 88px)',
+                letterSpacing: '-0.03em',
+                color: 'transparent',
+                backgroundImage: 'linear-gradient(180deg, rgba(244,243,239,0.11) 0%, rgba(244,243,239,0.04) 78%, rgba(244,243,239,0.015) 100%)',
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+              }}>
+              PLAY ON.
+            </span>
+          </div>
+
+          {/* editorial corner marks */}
+          <span className="absolute top-2 left-4 text-paper/25 text-base font-thin select-none pointer-events-none">+</span>
+          <span className="absolute top-2 right-4 text-paper/25 text-base font-thin select-none pointer-events-none">+</span>
+          <span className="absolute bottom-2 left-4 text-paper/25 text-base font-thin select-none pointer-events-none">+</span>
+          <span className="absolute bottom-2 right-4 text-paper/25 text-base font-thin select-none pointer-events-none">+</span>
+
+          <div className="relative">
+            <svg ref={mob.svgRef} viewBox="0 0 400 660" className="w-full h-auto" fill="none" role="img" aria-label="ZUNEX PLUS fast charging an iPhone 17 — tap the QR code to start">
+              <defs>
+                <radialGradient id="pmPortGlowM">
+                  <stop offset="0%" stopColor="#C5C9D0" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="#6B7280" stopOpacity="0" />
+                </radialGradient>
+                <radialGradient id="pmPacketGlowM">
+                  <stop offset="0%" stopColor="#C5C9D0" stopOpacity="0.45" />
+                  <stop offset="100%" stopColor="#6B7280" stopOpacity="0" />
+                </radialGradient>
+                <radialGradient id="pmGroundGlowM">
+                  <stop offset="0%" stopColor="#6B7280" stopOpacity="0.22" />
+                  <stop offset="100%" stopColor="#6B7280" stopOpacity="0" />
+                </radialGradient>
+                <linearGradient id="pmGlintGradM" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0" />
+                  <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.55" />
+                  <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+                </linearGradient>
+                <clipPath id="pmClipM">
+                  <rect x="70" y="118" width="560" height="354" rx="16" />
+                </clipPath>
+                <linearGradient id="pmFillGradM" x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stopColor="#4B5563" />
+                  <stop offset="100%" stopColor="#C5C9D0" />
+                </linearGradient>
+                <linearGradient id="pmScreenGradM" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#15151A" />
+                  <stop offset="100%" stopColor="#0A0A0E" />
+                </linearGradient>
+                <linearGradient id="pmPhoneBodyM" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#87878E" />
+                  <stop offset="50%" stopColor="#55555C" />
+                  <stop offset="100%" stopColor="#3E3E45" />
+                </linearGradient>
+                <filter id="pmSoftBlurM" x="-40%" y="-40%" width="180%" height="180%">
+                  <feGaussianBlur stdDeviation="9" />
+                </filter>
+                <filter id="pmDevShadowM" x="-30%" y="-30%" width="160%" height="160%">
+                  <feDropShadow dx="0" dy="12" stdDeviation="14" floodColor="#000000" floodOpacity="0.55" />
+                </filter>
+                <filter id="pmReflBlurM" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="2.5" />
+                </filter>
+                <linearGradient id="pmFloorLineM" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#6B7280" stopOpacity="0" />
+                  <stop offset="50%" stopColor="#6B7280" stopOpacity="0.32" />
+                  <stop offset="100%" stopColor="#6B7280" stopOpacity="0" />
+                </linearGradient>
+                <linearGradient id="pmReflGradM" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.5" />
+                  <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+                </linearGradient>
+                <mask id="pmReflFadeM">
+                  <rect x="70" y="496" width="560" height="30" fill="url(#pmReflGradM)" />
+                </mask>
+              </defs>
+
+              {/* studio floor line + ambient glow */}
+              <line x1="16" y1="612" x2="384" y2="612" stroke="url(#pmFloorLineM)" strokeWidth="1" />
+              <ellipse cx="200" cy="598" rx="185" ry="26" fill="url(#pmGroundGlowM)"
+                style={{ opacity: charging ? 1 : 0.35, transition: 'opacity 0.8s ease' }} />
+
+              {/* short cable — drawn behind both devices */}
+              <path d={cablePathM} stroke="#1C1C21" strokeWidth="6.5" strokeLinecap="round" />
+              <path d={cablePathM} stroke="#38383F" strokeWidth="2" strokeLinecap="round" opacity="0.55" />
+
+              {charging && (
+                <>
+                  {[0, 1.2].map((begin) => (
+                    <g key={begin}>
+                      <circle r="5" fill="url(#pmPacketGlowM)">
+                        <animateMotion dur="2.4s" begin={`${begin}s`} repeatCount="indefinite" path={cablePathM} />
+                      </circle>
+                      <g opacity="0.8">
+                        <animateMotion dur="2.4s" begin={`${begin}s`} repeatCount="indefinite" path={cablePathM} rotate="auto" />
+                        <path d="M -3.5 -3 L 4 0 L -3.5 3 L -1.5 0 Z" fill="#AEB2BA" />
+                      </g>
+                    </g>
+                  ))}
+                  <g opacity="0.9" style={{ animation: 'fade-in-soft 0.4s ease-out both' }}>
+                    <rect x="365" y="389.5" width="46" height="21" rx="10.5" fill="#101014" stroke="#2E2E34" strokeWidth="1" />
+                    <text x="388" y="403.5" textAnchor="middle" fontFamily="Space Grotesk, sans-serif" fontWeight="700" fontSize="9.5" letterSpacing="1" fill="#AEB2BA">65W</text>
+                  </g>
+                </>
+              )}
+
+              {/* ═══ ZUNEX PLUS — top. The whole device group is one uniform
+                  0.607 scale of the desktop composition, so the plug stays glued
+                  to the port hole and all photo-anchored geometry carries over. ═══ */}
+              <g style={{ animation: 'float-soft-sm 7s ease-in-out infinite' }}>
+                <g transform="translate(30,40) scale(0.607) translate(-70,-118)">
+                  <ellipse cx="400" cy="446" rx="270" ry="12" fill="#000" opacity="0.5" filter="url(#pmSoftBlurM)" />
+                  <g>
+                    <image href="/products/plus-full-cutout.png" x="70" y="118" width="560" height="354" filter="url(#pmDevShadowM)" />
+                    <g clipPath="url(#pmClipM)">
+                      <rect x="40" y="110" width="72" height="370" fill="url(#pmGlintGradM)"
+                        style={{ animation: 'glint-sweep 5.5s ease-in-out infinite' }} />
+                    </g>
+                  </g>
+                  {/* floor reflection */}
+                  <image href="/products/plus-full-cutout.png" x="70" y="118" width="560" height="354"
+                    transform="translate(0,972) scale(1,-1)" mask="url(#pmReflFadeM)" opacity="0.16" filter="url(#pmReflBlurM)" />
+
+                  {/* USB-C plug — anchored to the port hole, bobs with the device */}
+                  <g>
+                    {charging && (
+                      <circle cx="341.8" cy="420.4" r="16" fill="url(#pmPortGlowM)"
+                        style={{ animation: 'port-glow 1.6s ease-in-out infinite', transformOrigin: '341.8px 420.4px' }} />
+                    )}
+                    <line x1="334" y1="422.2" x2="359" y2="415.5" stroke="#B9BDC4" strokeWidth="6.6" strokeLinecap="round" opacity="0.85" />
+                    <line x1="335.5" y1="421.8" x2="358" y2="415.9" stroke="#DCDFE3" strokeWidth="1.6" strokeLinecap="round" opacity="0.7" />
+                    <line x1="359" y1="415.5" x2="384" y2="422" stroke="#1E1E23" strokeWidth="10" strokeLinecap="butt" />
+                    <path d="M 384 416.8 L 446 418.9 L 446 437.9 L 384 427.2 Z" fill="#141418" />
+                  </g>
+                </g>
+
+                {/* QR tap target — scene units, enlarged invisible hit area for thumbs */}
+                <g
+                  onClick={start}
+                  style={{ cursor: charging ? 'default' : 'pointer' }}
+                  role="button"
+                  aria-label="Tap the QR code to start charging"
+                >
+                  {phase === 'idle' && (
+                    <ellipse cx="331" cy="145" rx="23" ry="17" fill="none" stroke="#F4F3EF" strokeOpacity="0.5" strokeWidth="1.2"
+                      style={{ animation: 'halo-breathe 2.8s ease-in-out infinite', transformOrigin: '331px 145px' }} />
+                  )}
+                  <rect x="295" y="109" width="72" height="72" rx="12" fill="transparent" />
+                </g>
+              </g>
+
+              {/* ═══ iPhone 17 — underneath ═══ */}
+              <g style={{ animation: 'float-soft-sm 7s ease-in-out -3.5s infinite' }}>
+               <g transform="translate(200,455) scale(0.9) translate(-1237.5,-250.5)">
+                <ellipse cx="1237" cy="432" rx="90" ry="12" fill="#000" opacity="0.5" filter="url(#pmSoftBlurM)" />
+                <rect x="1160" y="96" width="155" height="325" rx="28" fill="#1F1F24" />
+                <rect x="1156" y="118" width="4" height="24" rx="2" fill="#3C3C43" />
+                <rect x="1156" y="152" width="4" height="36" rx="2" fill="#3C3C43" />
+                <rect x="1156" y="196" width="4" height="36" rx="2" fill="#3C3C43" />
+                <rect x="1315" y="146" width="4" height="58" rx="2" fill="#3C3C43" />
+                <rect x="1160" y="88" width="155" height="325" rx="28" fill="url(#pmPhoneBodyM)" />
+                <rect x="1163" y="91" width="149" height="319" rx="25" fill="#050507" />
+                <rect x="1168" y="96" width="139" height="309" rx="20" fill="url(#pmScreenGradM)" stroke="#4A4A52" strokeWidth="1.25" />
+                <rect x="1171" y="99" width="133" height="303" rx="17" fill="none" stroke="#2A2A31" strokeWidth="0.75" />
+                <rect x="1214" y="108" width="47" height="14.5" rx="7.25" fill="#020203" />
+
+                {phase === 'idle' && (
+                  <g opacity="0.55">
+                    <g transform="translate(1216,186) scale(0.081)" fill="#3C3C43">
+                      {MARK_PATHS.map((d, i) => <path key={i} d={d} />)}
+                    </g>
+                  </g>
+                )}
+
+                {charging && (
+                  <g style={{ animation: 'fade-in-soft 0.3s ease-out both' }}>
+                    <rect x="1228" y="144" width="18" height="6" rx="2.5" fill="#B9BDC4" />
+                    <rect x="1204" y="150" width="66" height="110" rx="12" stroke="#B9BDC4" strokeWidth="2.5" fill="none" />
+                    <rect x="1209" y={256 - Number(fillH)} width="56" height={fillH} rx="6" fill="url(#pmFillGradM)" style={{ transition: 'height 0.12s linear, y 0.12s linear' }} />
+                    <g style={{ animation: 'pulse-soft 1.4s ease-in-out infinite' }}>
+                      <path d="M1243 178 L1228 208 h8.5 l-4.5 24 15-28 h-8.5 l7-26 Z" fill="#F4F3EF" opacity="0.95" />
+                    </g>
+                    <text x="1237" y="298" textAnchor="middle" fontFamily="Space Grotesk, sans-serif" fontWeight="700" fontSize="34" fill="#F4F3EF">{pct}%</text>
+                    <text x="1237" y="320" textAnchor="middle" fontFamily="Inter, sans-serif" fontWeight="600" fontSize="8.5" letterSpacing="2.5" fill="#C5C9D0">FAST CHARGING</text>
+                    <g opacity="0.75">
+                      {[0, 1, 2].map((i) => (
+                        <rect key={i} x={1216 + i * 15} y="338" width="9" height="4" rx="2" fill="#9CA3AF"
+                          style={{ animation: `pulse-soft 1.2s ease-in-out ${i * 0.2}s infinite` }} />
+                      ))}
+                    </g>
+                  </g>
+                )}
+
+                {charged && (
+                  <g style={{ animation: 'fade-in-soft 0.35s ease-out both' }}>
+                    <rect x="1168" y="96" width="139" height="309" rx="20" fill="#F4F3EF" style={{ animation: 'screen-flash 0.9s ease-out forwards' }} />
+                    {[0, 0.25].map((d) => (
+                      <circle key={d} cx="1237" cy="205" r="56" stroke="#9CA3AF" strokeWidth="1.5" fill="none"
+                        style={{ animation: `ring-burst 1s ease-out ${d}s forwards`, transformBox: 'fill-box', transformOrigin: 'center' }} />
+                    ))}
+                    <g transform="translate(1165,137) scale(0.28)" fill="#B9BDC4" opacity="0.95">
+                      {MARK_PATHS.map((d, i) => <path key={i} d={d} />)}
+                    </g>
+                    <text x="1237" y="296" textAnchor="middle" fontFamily="Space Grotesk, sans-serif" fontWeight="700" fontSize="26" fill="#F4F3EF">100%</text>
+                    <text x="1237" y="318" textAnchor="middle" fontFamily="Inter, sans-serif" fontWeight="600" fontSize="8.5" letterSpacing="2.5" fill="#C5C9D0">FULLY CHARGED</text>
+                  </g>
+                )}
+
+                {charging && (
+                  <circle cx="1237" cy="414" r="18" fill="url(#pmPortGlowM)" style={{ animation: 'port-glow 1.6s ease-in-out infinite', transformOrigin: '1237px 414px' }} />
+                )}
+                <rect x="1226" y="410" width="22" height="7" rx="3.5" stroke="#6E6E76" strokeWidth="1.5" fill="#0D0D10" />
+               </g>
+              </g>
+            </svg>
+
+            {/* ═══ LIVE SCREEN overlay (mobile) — same homography mapping,
+                measured against the mobile SVG. Video-only, from page load. ═══ */}
+            <div ref={mob.wrapRef} className="absolute inset-0" style={{ pointerEvents: 'none' }}>
+              <div
+                className="absolute left-0 top-0"
+                style={{
+                  width: 1000,
+                  height: 620,
+                  transformOrigin: '0 0',
+                  transform: mob.matrix,
+                  opacity: mob.matrix ? 1 : 0,
+                  pointerEvents: 'none',
+                }}
+              >
+                <div className="w-full h-full relative overflow-hidden bg-black">
+                  <video
+                    src="/media/plus-ad.mp4"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="auto"
+                    aria-hidden
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ pointerEvents: 'none' }}
+                  />
+                  <div className="absolute inset-0 pointer-events-none" style={{
+                    background: 'linear-gradient(115deg, rgba(244,243,239,0.05) 0%, transparent 22%, transparent 78%, rgba(244,243,239,0.03) 100%)',
+                  }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Reveal>
       </div>
     </section>
   );
