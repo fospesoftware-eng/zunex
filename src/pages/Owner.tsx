@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { MeshBG, Reveal, Counter } from '../components/Brand';
+import LeadForm from '../components/LeadForm';
 
 /* ═══════════════════════════════════════════════════════════
    OWNER — everything a ZUNEX owner needs in one place.
@@ -24,6 +25,23 @@ export default function OwnerPage() {
     <main className="pt-24">
       {/* Hero */}
       <section className="relative min-h-[80svh] flex flex-col justify-center overflow-hidden noise-bg">
+        {/* Cinematic background film — self-hosted, muted, looping */}
+        <video
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          src="/media/owner-bg.mp4"
+          poster="/media/owner-bg-poster.jpg"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          aria-hidden="true"
+        />
+        {/* Dark scrim — keeps the type legible over the film */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'linear-gradient(180deg, rgba(8,8,10,0.82) 0%, rgba(8,8,10,0.58) 45%, rgba(8,8,10,0.88) 100%)' }}
+        />
         <MeshBG variant="steel" />
         <div className="relative max-w-container mx-auto px-6 lg:px-8">
           <Reveal>
@@ -85,6 +103,9 @@ export default function OwnerPage() {
           </Reveal>
         </div>
       </section>
+
+      {/* Lead form — owner desk */}
+      <LeadForm variant="owner" />
     </main>
   );
 }

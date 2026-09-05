@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { MeshBG, Reveal, RevealWords } from '../components/Brand';
+import LeadForm from '../components/LeadForm';
 
 /* ═══════════════════════════════════════════════════════════
    ENTERPRISE — venues, installation network, tech partners.
@@ -81,6 +82,9 @@ export default function EnterprisePage() {
           </Reveal>
         </div>
       </section>
+
+      {/* Lead form — enterprise desk */}
+      <LeadForm variant="enterprise" />
     </main>
   );
 }

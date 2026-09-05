@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { MeshBG, Reveal, Counter } from '../components/Brand';
+import LeadForm from '../components/LeadForm';
 
 /* ═══════════════════════════════════════════════════════════
    ADVERTISE — the ZUNEX screen network for brands.
@@ -85,6 +86,9 @@ export default function AdvertisePage() {
           </Reveal>
         </div>
       </section>
+
+      {/* Lead form — campaigns desk */}
+      <LeadForm variant="advertise" />
     </main>
   );
 }
