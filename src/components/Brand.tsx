@@ -117,7 +117,10 @@ export function Counter({ to, suffix = '', duration = 1800 }: { to: number; suff
   return <span ref={setRef}>{count}{suffix}</span>;
 }
 
-/** Reveal — fade up on scroll into view */
+/** Reveal — fade up on scroll into view.
+ *  The observer watches a static outer div; the transform runs on an inner div.
+ *  (Observing the transformed element itself breaks inside overflow-hidden masks:
+ *  once translateY ≥ mask height the element never intersects → never reveals.) */
 export function Reveal({ children, delay = 0, y = 24, className = '' }: { children: React.ReactNode; delay?: number; y?: number; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -131,12 +134,15 @@ export function Reveal({ children, delay = 0, y = 24, className = '' }: { childr
     return () => obs.disconnect();
   }, []);
   return (
-    <div ref={ref} className={className} style={{
-      opacity: visible ? 1 : 0,
-      transform: visible ? 'translateY(0)' : `translateY(${y}px)`,
-      transition: `opacity 1s var(--ease-lux) ${delay}s, transform 1s var(--ease-lux) ${delay}s`,
-    }}>
-      {children}
+    <div ref={ref} className={className}>
+      <div style={{
+        height: '100%',
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : `translateY(${y}px)`,
+        transition: `opacity 1s var(--ease-lux) ${delay}s, transform 1s var(--ease-lux) ${delay}s`,
+      }}>
+        {children}
+      </div>
     </div>
   );
 }
