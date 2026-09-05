@@ -1571,7 +1571,8 @@ function FootLink({ href, label }: { href: string; label: string }) {
 function Footer() {
   return (
     <footer id="contact" className="hairline-t py-16 relative overflow-hidden">
-      <div className="max-w-container mx-auto px-6 lg:px-8">
+      {/* extra right padding — keeps the last column a safe distance from the edge */}
+      <div className="max-w-container mx-auto pl-6 pr-10 lg:pl-8 lg:pr-16">
         <div className="grid lg:grid-cols-[1.1fr_2fr] gap-14 mb-16">
           {/* Brand block */}
           <div>
