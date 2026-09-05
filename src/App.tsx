@@ -10,6 +10,7 @@ import FastChargePage from './pages/FastChargePage';
 import AdvertisePage from './pages/Advertise';
 import EnterprisePage from './pages/Enterprise';
 import RoiPage from './pages/Roi';
+import ContactPage from './pages/Contact';
 
 /* ═══════════════════════════════════════════════════════════
    MAGNETIC LINK
@@ -896,11 +897,11 @@ function ProductShowcase() {
 
                     {/* CTA */}
                     <Reveal delay={0.55}>
-                      <a href="#contact" data-hover
+                      <Link to="/contact" data-hover
                         className="mt-9 inline-flex items-center gap-2 text-[12px] font-semibold tracking-[0.08em] uppercase text-paper border border-paper/20 rounded-full px-7 py-3 hover:bg-paper hover:text-ink transition-all duration-500 w-max"
                         style={{ transitionTimingFunction: 'var(--ease-lux)' }}>
                         Explore {isPlus ? 'PLUS' : 'ONE'} <span className="w-3.5 h-3.5 inline-block [&>svg]:w-full [&>svg]:h-full">{Ico.arrow}</span>
-                      </a>
+                      </Link>
                     </Reveal>
                   </div>
                 </div>
@@ -1359,6 +1360,7 @@ export default function App() {
         <Route path="/advertise" element={<AdvertisePage />} />
         <Route path="/enterprise" element={<EnterprisePage />} />
         <Route path="/roi" element={<RoiPage />} />
+        <Route path="/contact" element={<ContactPage />} />
         <Route path="*" element={<HomePage />} />
       </Routes>
       <Footer />

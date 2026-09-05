@@ -53,7 +53,7 @@ export default function Navbar() {
 
         {/* CTA */}
         <Link
-          to="/#contact"
+          to="/contact"
           data-hover
           className="hidden lg:inline-flex items-center gap-2 text-[12px] font-semibold text-ink bg-paper px-6 py-2.5 rounded-full hover:bg-steel hover:text-paper transition-all duration-300"
         >
@@ -89,7 +89,7 @@ export default function Navbar() {
               </NavLink>
             ))}
             <Link
-              to="/#contact"
+              to="/contact"
               onClick={() => setMobileOpen(false)}
               className="mt-2 inline-flex w-fit items-center gap-2 text-[12px] font-semibold text-ink bg-paper px-6 py-2.5 rounded-full"
             >

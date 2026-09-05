@@ -72,7 +72,7 @@ export default function FastChargePage() {
           </Reveal>
 
           <Reveal delay={0.3}>
-            <Link to="/#contact" data-hover
+            <Link to="/contact" data-hover
               className="inline-flex items-center gap-2.5 px-8 py-4 rounded-full text-[13px] font-semibold tracking-wide bg-paper text-ink hover:bg-steel hover:text-paper transition-all duration-500">
               Get in touch
             </Link>
