@@ -347,10 +347,12 @@ function PlusMediaHero() {
         </Reveal>
       </div>
 
+      {/* swipeable on small screens — keeps hub + LCD video readable */}
+      <div className="overflow-x-auto no-scrollbar">
       <Reveal delay={0.15}>
         <div
           ref={sceneRef}
-          className="relative w-full max-w-[1500px] mx-auto px-4"
+          className="relative w-full max-w-[1500px] mx-auto px-4 min-w-[700px] md:min-w-0"
           style={{ perspective: '1600px' }}
           onMouseMove={onTilt}
           onMouseLeave={() => setTilt({ x: 0, y: 0 })}
@@ -646,6 +648,11 @@ function PlusMediaHero() {
           </div>
         </div>
       </Reveal>
+      </div>
+      {/* swipe hint — small screens only */}
+      <div className="mt-4 flex justify-center md:hidden">
+        <span className="text-[9px] font-semibold tracking-[0.3em] uppercase text-paper-faint">Swipe to explore</span>
+      </div>
     </section>
   );
 }

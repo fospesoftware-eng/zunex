@@ -283,3 +283,12 @@
   -webkit-text-fill-color: transparent;
   animation: shimmer-text 5s linear infinite;
 }
+
+/* ── swipeable scenes: hide scrollbars ── */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ── touch devices: hide the custom cursor dot ── */
+@media (hover: none) and (pointer: coarse) {
+  .cursor-mark { display: none !important; }
+}
